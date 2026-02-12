@@ -33,6 +33,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
       leaveProvider.fetchMyLeaves(),
       timeLogProvider.fetchActiveSession(),
       timeLogProvider.fetchTodayWorkingHours(),
+      timeLogProvider.fetchMyTimeLogs(),
       notificationProvider.fetchUnreadCount(),
       notificationProvider.fetchNotifications(),
     ]);
@@ -1220,7 +1221,6 @@ class _StaffDashboardState extends State<StaffDashboard> {
             backgroundColor: AppColors.error,
           ),
           onPressed: () {
-                Navigator.pop(context);
                 _endSession('other', context, customReason: 'End of workday');
               },
           child: const Text('End'),
@@ -1265,7 +1265,6 @@ class _StaffDashboardState extends State<StaffDashboard> {
                 );
                 return;
               }
-              Navigator.pop(context);
               _endSession('other', context, customReason: customReason);
             },
             child: const Text('Confirm'),

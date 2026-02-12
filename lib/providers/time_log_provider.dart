@@ -28,11 +28,10 @@ class TimeLogProvider with ChangeNotifier {
   bool get isDutyEndedToday {
     final today = DateTime.now();
     return _myTimeLogs.any((log) {
-      // filters logs from today
-      final isToday = log.date.year == today.year &&
-          log.date.month == today.month &&
-          log.date.day == today.day;
-      // checks if the log has the specific end reason
+      final localDate = log.date.toLocal();
+      final isToday = localDate.year == today.year &&
+          localDate.month == today.month &&
+          localDate.day == today.day;
       return isToday &&
           ((log.endReason == 'other' &&
                   log.customReason == 'End of workday') ||

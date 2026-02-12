@@ -33,8 +33,9 @@ class ApiClient {
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
           }
+          print('FULL URL BEING CALLED: ${options.uri}');
 
-          _logger.d('Request: ${options.method} ${options.path}');
+          _logger.d('Request: ${options.method} ${options.uri}');
           _logger.d('Headers: ${options.headers}');
           _logger.d('Data: ${options.data}');
 
@@ -86,6 +87,7 @@ class ApiClient {
         queryParameters: queryParameters,
         options: options,
       );
+      print(path);
       return response;
     } on DioException catch (e) {
       throw _handleError(e);
@@ -194,7 +196,9 @@ class ApiClient {
         }
         return Exception(data['message'] ?? 'Validation error');
       case 500:
+        print('SERVER CRASH DATA: ${response.data}'); 
         return Exception('Server error. Please try again later.');
+        // return Exception('Server error. Please try again later.');
       default:
         return Exception(data['message'] ?? 'An error occurred');
     }

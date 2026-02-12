@@ -1,6 +1,6 @@
 class AppConstants {
   // API Configuration
-  static const String baseUrl = 'http://localhost:8000/api'; // Change to your Laravel API URL
+  static const String baseUrl = 'http://31.97.71.5/leave-api/'; // Change to your Laravel API URL
   static const String apiVersion = 'v1';
   
   // Storage Keys

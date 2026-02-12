@@ -18,9 +18,27 @@ class TimeLogProvider with ChangeNotifier {
   List<TimeLogModel> get myTimeLogs => _myTimeLogs;
   List<TimeLogModel> get allTimeLogs => _allTimeLogs;
   Duration? get todayWorkingHours => _todayWorkingHours;
+
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get hasActiveSession => _activeSession != null;
+
+  // Check if duty is ended today
+  // This checks if there's any completed session today with the reason "End of workday"
+  bool get isDutyEndedToday {
+    final today = DateTime.now();
+    return _myTimeLogs.any((log) {
+      // filters logs from today
+      final isToday = log.date.year == today.year &&
+          log.date.month == today.month &&
+          log.date.day == today.day;
+      // checks if the log has the specific end reason
+      return isToday &&
+          ((log.endReason == 'other' &&
+                  log.customReason == 'End of workday') ||
+              log.endReason == 'half_day');
+    });
+  }
 
   // Start Work Session
   Future<bool> startSession() async {

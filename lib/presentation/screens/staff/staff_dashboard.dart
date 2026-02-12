@@ -426,42 +426,97 @@ class _StaffDashboardState extends State<StaffDashboard> {
                 const SizedBox(height: 16),
 
                 // Action Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: hasActiveSession
-                            ? null
-                            : () async {
-                                final success = await timeLogProvider
-                                    .startSession();
-                                if (context.mounted && success) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Session started!'),
-                                      backgroundColor: AppColors.success,
-                                    ),
-                                  );
-                                  await _loadData();
-                                }
-                              },
-                        icon: const Icon(Icons.play_arrow),
-                        label: const Text('Start'),
+                SizedBox(
+                  height: 48, // Fixed height for a balanced look
+                  child: Row(
+                    children: [
+                      // START BUTTON
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: hasActiveSession || timeLogProvider.isDutyEndedToday
+                              ? null // Disable if session active OR duty ended
+                              : () async {
+                                  final success = await timeLogProvider.startSession();
+                                  if (context.mounted && success) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Session started!'),
+                                        backgroundColor: AppColors.success,
+                                      ),
+                                    );
+                                    await _loadData();
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: timeLogProvider.isDutyEndedToday
+                                ? Colors.grey // Visual cue for ended duty
+                                : AppColors.success,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.zero, // Ensures text fits
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                timeLogProvider.isDutyEndedToday ? Icons.check_circle : Icons.play_arrow,
+                                size: 20
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                timeLogProvider.isDutyEndedToday ? 'Completed' : 'Start',
+                                style: const TextStyle(fontWeight: FontWeight.bold)
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: !hasActiveSession
-                            ? null
-                            : () async {
-                                _showEndSessionDialog();
-                              },
-                        icon: const Icon(Icons.stop),
-                        label: const Text('End'),
+                      const SizedBox(width: 8),
+
+                      // PAUSE BUTTON
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: !hasActiveSession ? null : () => _showEndSessionDialog(),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: hasActiveSession ? AppColors.warning : Colors.grey),
+                            foregroundColor: AppColors.warning,
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.pause, size: 20),
+                              SizedBox(width: 4),
+                              Text('Pause', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+
+                      // END DUTY BUTTON
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: !hasActiveSession ? null : () => _endDutyToday(),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: hasActiveSession ? AppColors.error : Colors.grey),
+                            foregroundColor: AppColors.error,
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.stop, size: 20),
+                              SizedBox(width: 4),
+                              Text('End', style: TextStyle(fontWeight: FontWeight.bold)), // Shortened to 'End' for better fit
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -1105,14 +1160,14 @@ class _StaffDashboardState extends State<StaffDashboard> {
                 await _endSessionAndApplyHalfDay();
               },
             ),
-            ListTile(
-              title: const Text('End Work Today'),
-              leading: const Icon(Icons.work_off),
-              onTap: () {
-                Navigator.pop(context);
-                _endSession('other', context, customReason: 'End of workday');
-              },
-            ),
+            // ListTile(
+            //   title: const Text('End Work Today'),
+            //   leading: const Icon(Icons.work_off),
+            //   onTap: () {
+            //     Navigator.pop(context);
+            //     _endSession('other', context, customReason: 'End of workday');
+            //   },
+            // ),
             ListTile(
               title: const Text('Other'),
               leading: const Icon(Icons.more_horiz),
@@ -1126,6 +1181,48 @@ class _StaffDashboardState extends State<StaffDashboard> {
       ),
     );
   }
+
+  void _endDutyToday() {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      title: Row(
+        children: const [
+          Icon(Icons.stop_circle, color: AppColors.error),
+          SizedBox(width: 8),
+          Text(
+            'End Duty Today',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+      content: const Text(
+        'Are you sure you want to end your duty for today? '
+        'This will finalize your working hours and stop time tracking.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.error,
+          ),
+          onPressed: () {
+                Navigator.pop(context);
+                _endSession('other', context, customReason: 'End of workday');
+              },
+          child: const Text('End'),
+        ),
+      ],
+    ),
+  );
+}
+
 
   void _showCustomReasonDialog() {
     final TextEditingController reasonController = TextEditingController();

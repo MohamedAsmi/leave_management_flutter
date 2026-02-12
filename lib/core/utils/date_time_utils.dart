@@ -3,15 +3,15 @@ import 'package:leave_management/core/constants/app_constants.dart';
 
 class DateTimeUtils {
   static String formatDate(DateTime date, {String? format}) {
-    return DateFormat(format ?? AppConstants.displayDateFormat).format(date);
+    return DateFormat(format ?? AppConstants.displayDateFormat).format(date.toLocal());
   }
   
   static String formatTime(DateTime time, {String? format}) {
-    return DateFormat(format ?? AppConstants.displayTimeFormat).format(time);
+    return DateFormat(format ?? AppConstants.displayTimeFormat).format(time.toLocal());
   }
   
   static String formatDateTime(DateTime dateTime, {String? format}) {
-    return DateFormat(format ?? AppConstants.dateTimeFormat).format(dateTime);
+    return DateFormat(format ?? AppConstants.dateTimeFormat).format(dateTime.toLocal());
   }
   
   static DateTime? parseDate(String? dateString) {

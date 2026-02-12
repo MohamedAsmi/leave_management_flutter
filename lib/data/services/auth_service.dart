@@ -31,7 +31,7 @@ class AuthService {
     String? phone,
     String? department,
   }) async {
-    final response = await _apiClient.post('auth/register', data: {
+    final response = await _apiClient.post('/auth/register', data: {
       'name': name,
       'email': email,
       'password': password,

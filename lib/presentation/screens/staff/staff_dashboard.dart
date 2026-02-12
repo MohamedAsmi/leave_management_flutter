@@ -8,6 +8,7 @@ import 'package:leave_management/providers/auth_provider.dart';
 import 'package:leave_management/providers/leave_provider.dart';
 import 'package:leave_management/providers/time_log_provider.dart';
 import 'package:leave_management/providers/notification_provider.dart';
+import 'package:leave_management/presentation/screens/staff/time_log_screen.dart';
 
 class StaffDashboard extends StatefulWidget {
   const StaffDashboard({super.key});
@@ -103,9 +104,10 @@ class _StaffDashboardState extends State<StaffDashboard> {
                           const SizedBox(height: 4),
                           Text(
                             notification.createdAt != null
-                                ? DateFormat(
-                                    'MMM d, y h:mm a',
-                                  ).format(notification.createdAt!)
+                                ? DateTimeUtils.formatDateTime(
+                                    notification.createdAt!,
+                                    format: 'MMM d, y h:mm a',
+                                  )
                                 : '',
                             style: const TextStyle(fontSize: 11),
                           ),
@@ -879,12 +881,17 @@ class _StaffDashboardState extends State<StaffDashboard> {
                 );
               },
             ),
-            _buildActionCard('Time Logs', Icons.history, AppColors.info, () {
-              // TODO: Navigate to time logs
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Time Logs - Coming Soon')),
-              );
-            }),
+            _buildActionCard(
+              'Time Logs',
+              Icons.history,
+              AppColors.info,
+              () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TimeLogScreen()),
+                );
+              },
+            ),
             _buildActionCard('Profile', Icons.person, AppColors.warning, () {
               // TODO: Navigate to profile
               ScaffoldMessenger.of(context).showSnackBar(
@@ -1273,6 +1280,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
     BuildContext dialogContext, {
     String? customReason,
   }) async {
+    Navigator.pop(dialogContext);
     final timeLogProvider = context.read<TimeLogProvider>();
     final success = await timeLogProvider.endSession(
       endReason: reason,

@@ -46,6 +46,9 @@ class UserModel extends HiveObject {
   @HiveField(13)
   final DateTime? updatedAt;
 
+  @HiveField(14)
+  final double halfDayLeaveBalance;
+
   UserModel({
     required this.id,
     required this.name,
@@ -58,6 +61,7 @@ class UserModel extends HiveObject {
     this.joinedDate,
     this.casualLeaveBalance = 0,
     this.shortLeaveBalance = 0,
+    this.halfDayLeaveBalance = 0.0,
     this.isActive = true,
     this.createdAt,
     this.updatedAt,
@@ -69,6 +73,14 @@ class UserModel extends HiveObject {
     if (value is double) return value.toInt();
     if (value is String) return double.tryParse(value)?.toInt() ?? 0;
     return 0;
+  }
+
+  static double _parseToDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
   }
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -86,6 +98,7 @@ class UserModel extends HiveObject {
           : null,
       casualLeaveBalance: _parseToInt(json['casual_leave_balance']),
       shortLeaveBalance: _parseToInt(json['short_leave_balance']),
+      halfDayLeaveBalance: _parseToDouble(json['half_day_leave_balance']),
       isActive: json['is_active'] ?? true,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
@@ -109,6 +122,7 @@ class UserModel extends HiveObject {
       'joined_date': joinedDate?.toIso8601String(),
       'casual_leave_balance': casualLeaveBalance,
       'short_leave_balance': shortLeaveBalance,
+      'half_day_leave_balance': halfDayLeaveBalance,
       'is_active': isActive,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
@@ -127,6 +141,7 @@ class UserModel extends HiveObject {
     DateTime? joinedDate,
     int? casualLeaveBalance,
     int? shortLeaveBalance,
+    double? halfDayLeaveBalance,
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -143,6 +158,7 @@ class UserModel extends HiveObject {
       joinedDate: joinedDate ?? this.joinedDate,
       casualLeaveBalance: casualLeaveBalance ?? this.casualLeaveBalance,
       shortLeaveBalance: shortLeaveBalance ?? this.shortLeaveBalance,
+      halfDayLeaveBalance: halfDayLeaveBalance ?? this.halfDayLeaveBalance,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

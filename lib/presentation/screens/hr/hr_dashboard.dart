@@ -1130,18 +1130,7 @@ class _HRDashboardState extends State<HRDashboard> {
 
   Widget _buildLeaveBalanceCards() {
     final authProvider = context.watch<AuthProvider>();
-    final leaveProvider = context.watch<LeaveProvider>();
     final user = authProvider.currentUser;
-
-    // Count half-day leaves from myLeaves (exclude rejected/cancelled)
-    final halfDayLeaves = leaveProvider.myLeaves
-        .where(
-          (leave) =>
-              leave.leaveType == 'half_day' &&
-              leave.status != 'rejected' &&
-              leave.status != 'cancelled',
-        )
-        .length;
 
     return Row(
       children: [
@@ -1166,7 +1155,7 @@ class _HRDashboardState extends State<HRDashboard> {
         Expanded(
           child: _buildBalanceCard(
             'Half Day',
-            halfDayLeaves,
+            user?.halfDayLeaveBalance ?? 0.0,
             Icons.event_busy,
             AppColors.secondary,
           ),
@@ -1177,7 +1166,7 @@ class _HRDashboardState extends State<HRDashboard> {
 
   Widget _buildBalanceCard(
     String title,
-    int count,
+    num count, // Changed from int to num to support double
     IconData icon,
     Color color,
   ) {

@@ -531,18 +531,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
 
   Widget _buildLeaveBalanceCards() {
     final authProvider = context.watch<AuthProvider>();
-    final leaveProvider = context.watch<LeaveProvider>();
     final user = authProvider.currentUser;
-
-    // Count half-day leaves from myLeaves (exclude rejected/cancelled)
-    final halfDayLeaves = leaveProvider.myLeaves
-        .where(
-          (leave) =>
-              leave.leaveType == 'half_day' &&
-              leave.status != 'rejected' &&
-              leave.status != 'cancelled',
-        )
-        .length;
 
     return Row(
       children: [
@@ -567,7 +556,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
         Expanded(
           child: _buildBalanceCard(
             'Half Day',
-            halfDayLeaves,
+            user?.halfDayLeaveBalance ?? 0.0,
             Icons.event_busy,
             AppColors.secondary,
           ),
@@ -578,7 +567,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
 
   Widget _buildBalanceCard(
     String title,
-    int count,
+    num count, // Changed from int to num to support double
     IconData icon,
     Color color,
   ) {
@@ -876,10 +865,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
               Icons.list_alt,
               AppColors.secondary,
               () {
-                // TODO: Navigate to my leaves
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('My Leaves - Coming Soon')),
-                );
+                context.push('/my-leaves');
               },
             ),
             _buildActionCard(
@@ -954,7 +940,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
                 ),
                 TextButton(
                   onPressed: () {
-                    // TODO: Navigate to all leaves
+                    context.push('/my-leaves');
                   },
                   child: const Text('View All'),
                 ),

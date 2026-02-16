@@ -4,6 +4,9 @@ import 'package:leave_management/presentation/screens/auth/register_screen.dart'
 import 'package:leave_management/presentation/screens/staff/staff_dashboard.dart';
 import 'package:leave_management/presentation/screens/admin/admin_dashboard.dart';
 import 'package:leave_management/presentation/screens/hr/hr_dashboard.dart';
+import 'package:leave_management/presentation/screens/staff/my_leaves_screen.dart';
+import 'package:leave_management/presentation/screens/staff/leave_detail_screen.dart';
+import 'package:leave_management/data/models/leave_model.dart';
 import 'package:leave_management/providers/auth_provider.dart';
 
 class AppRouter {
@@ -74,10 +77,24 @@ class AppRouter {
         builder: (context, state) => const HRDashboard(),
       ),
 
-      // Staff Routes
       GoRoute(
         path: '/staff/dashboard',
         builder: (context, state) => const StaffDashboard(),
+      ),
+
+      // My Leaves
+      GoRoute(
+        path: '/my-leaves',
+        builder: (context, state) => const MyLeavesScreen(),
+        routes: [
+          GoRoute(
+            path: 'detail',
+            builder: (context, state) {
+              final leave = state.extra as LeaveModel;
+              return LeaveDetailScreen(leave: leave);
+            },
+          ),
+        ],
       ),
     ],
   );

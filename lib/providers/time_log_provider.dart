@@ -23,9 +23,9 @@ class TimeLogProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get hasActiveSession => _activeSession != null;
 
-  // Check if duty is ended today
+  // Check if duty is completed today
   // This checks if there's any completed session today with the reason "End of workday"
-  bool get isDutyEndedToday {
+  bool get isDutyCompletedToday {
     final today = DateTime.now();
     return _myTimeLogs.any((log) {
       final localDate = log.date.toLocal();
@@ -35,9 +35,24 @@ class TimeLogProvider with ChangeNotifier {
       return isToday &&
           ((log.endReason == 'other' &&
                   log.customReason == 'End of workday') ||
-              log.endReason == 'half_day');
+              log.endReason == 'half_day' &&
+                  log.customReason == 'second half');
     });
   }
+
+  // Check if duty has started today (any log exists for today)
+  bool get hasDutyStartedToday {
+    final today = DateTime.now();
+    return _myTimeLogs.any((log) {
+      final localDate = log.date.toLocal();
+      return localDate.year == today.year &&
+          localDate.month == today.month &&
+          localDate.day == today.day;
+    });
+  }
+
+  // Get the ID of the last log (for resuming)
+  int? get lastLogId => _myTimeLogs.isNotEmpty ? _myTimeLogs.first.id : null;
 
   // Start Work Session
   Future<bool> startSession() async {

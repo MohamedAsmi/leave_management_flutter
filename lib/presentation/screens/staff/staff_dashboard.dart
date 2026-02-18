@@ -436,8 +436,8 @@ class _StaffDashboardState extends State<StaffDashboard> {
                       // START BUTTON
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: hasActiveSession || timeLogProvider.isDutyEndedToday
-                              ? null // Disable if session active OR duty ended
+                          onPressed: timeLogProvider.hasDutyStartedToday
+                              ? null // Disable if duty started today (permanently for the day)
                               : () async {
                                   final success = await timeLogProvider.startSession();
                                   if (context.mounted && success) {
@@ -451,7 +451,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
                                   }
                                 },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: timeLogProvider.isDutyEndedToday
+                            backgroundColor: timeLogProvider.isDutyCompletedToday
                                 ? Colors.grey // Visual cue for ended duty
                                 : AppColors.success,
                             foregroundColor: Colors.white,
@@ -462,12 +462,12 @@ class _StaffDashboardState extends State<StaffDashboard> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                timeLogProvider.isDutyEndedToday ? Icons.check_circle : Icons.play_arrow,
+                                timeLogProvider.isDutyCompletedToday ? Icons.check_circle : Icons.play_arrow,
                                 size: 20
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                timeLogProvider.isDutyEndedToday ? 'Completed' : 'Start',
+                                timeLogProvider.isDutyCompletedToday ? 'Completed' : 'Start',
                                 style: const TextStyle(fontWeight: FontWeight.bold)
                               ),
                             ],
@@ -476,22 +476,60 @@ class _StaffDashboardState extends State<StaffDashboard> {
                       ),
                       const SizedBox(width: 8),
 
-                      // PAUSE BUTTON
+                      // PAUSE / RESUME BUTTON
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: !hasActiveSession ? null : () => _showEndSessionDialog(),
+                          onPressed: hasActiveSession
+                              ? () => _showEndSessionDialog()
+                              : (timeLogProvider.hasDutyStartedToday && !timeLogProvider.isDutyCompletedToday)
+                                  ? () async {
+                                      final lastId = timeLogProvider.lastLogId;
+                                      if (lastId != null) {
+                                        final success = await timeLogProvider.resumeSession(lastId);
+                                        if (context.mounted && success) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Session resumed!'),
+                                              backgroundColor: AppColors.success,
+                                            ),
+                                          );
+                                          await _loadData();
+                                        }
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('No previous session to resume found.'),
+                                            backgroundColor: AppColors.error,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  : null,
                           style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: hasActiveSession ? AppColors.warning : Colors.grey),
-                            foregroundColor: AppColors.warning,
+                            side: BorderSide(
+                              color: hasActiveSession
+                                  ? AppColors.warning
+                                  : (timeLogProvider.hasDutyStartedToday && !timeLogProvider.isDutyCompletedToday
+                                      ? AppColors.success
+                                      : Colors.grey),
+                            ),
+                            foregroundColor: hasActiveSession
+                                ? AppColors.warning
+                                : (timeLogProvider.hasDutyStartedToday && !timeLogProvider.isDutyCompletedToday
+                                    ? AppColors.success
+                                    : Colors.grey),
                             padding: EdgeInsets.zero,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.pause, size: 20),
+                              Icon(hasActiveSession ? Icons.pause : Icons.play_arrow, size: 20),
                               SizedBox(width: 4),
-                              Text('Pause', style: TextStyle(fontWeight: FontWeight.bold)),
+                              Text(
+                                hasActiveSession ? 'Pause' : 'Resume',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
                             ],
                           ),
                         ),
@@ -501,9 +539,15 @@ class _StaffDashboardState extends State<StaffDashboard> {
                       // END DUTY BUTTON
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: !hasActiveSession ? null : () => _endDutyToday(),
+                          onPressed: (hasActiveSession || (timeLogProvider.hasDutyStartedToday && !timeLogProvider.isDutyCompletedToday))
+                              ? () => _endDutyToday()
+                              : null,
                           style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: hasActiveSession ? AppColors.error : Colors.grey),
+                            side: BorderSide(
+                              color: (hasActiveSession || (timeLogProvider.hasDutyStartedToday && !timeLogProvider.isDutyCompletedToday))
+                                  ? AppColors.error
+                                  : Colors.grey,
+                            ),
                             foregroundColor: AppColors.error,
                             padding: EdgeInsets.zero,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -513,7 +557,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
                             children: [
                               Icon(Icons.stop, size: 20),
                               SizedBox(width: 4),
-                              Text('End', style: TextStyle(fontWeight: FontWeight.bold)), // Shortened to 'End' for better fit
+                              Text('End', style: TextStyle(fontWeight: FontWeight.bold)),
                             ],
                           ),
                         ),
@@ -1149,9 +1193,9 @@ class _StaffDashboardState extends State<StaffDashboard> {
             ListTile(
               title: const Text('Half Day'),
               leading: const Icon(Icons.event_busy),
-              onTap: () async {
+              onTap: () {
                 Navigator.pop(context);
-                await _endSessionAndApplyHalfDay();
+                _showHalfDaySelectionDialog();
               },
             ),
             // ListTile(
@@ -1392,14 +1436,57 @@ class _StaffDashboardState extends State<StaffDashboard> {
       }
     }
   }
+  void _showHalfDaySelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Half Day Type'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('First Half'),
+              subtitle: const Text('Morning (e.g., 9:00 AM - 1:00 PM)'),
+              leading: const Icon(Icons.wb_sunny_outlined),
+              onTap: () {
+                Navigator.pop(context);
+                _endSessionAndApplyHalfDay(explicitHalfDayType: 'first_half');
+              },
+            ),
+            ListTile(
+              title: const Text('Second Half'),
+              subtitle: const Text('Afternoon (e.g., 2:00 PM - 6:00 PM)'),
+              leading: const Icon(Icons.wb_twilight),
+              onTap: () {
+                Navigator.pop(context);
+                _endSessionAndApplyHalfDay(explicitHalfDayType: 'second_half');
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  Future<void> _endSessionAndApplyHalfDay() async {
+  Future<void> _endSessionAndApplyHalfDay({String? explicitHalfDayType}) async {
     final timeLogProvider = context.read<TimeLogProvider>();
     final leaveProvider = context.read<LeaveProvider>();
     final authProvider = context.read<AuthProvider>();
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final hasActiveSession = timeLogProvider.activeSession != null;
 
+    // Check conflict with manual validator first (in case Short Leave exists)
+    final conflictError = _checkLeaveConflict(DateTime.now(), 'half_day');
+    if (conflictError != null) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(conflictError),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    
     // Check if there's already a half-day leave for today
     final today = DateTime.now();
     final todayDate = DateTime(today.year, today.month, today.day);
@@ -1444,17 +1531,12 @@ class _StaffDashboardState extends State<StaffDashboard> {
       return;
     }
 
-    final halfDayType = hasActiveSession ? 'second_half' : 'first_half';
-    final reason = hasActiveSession
+    final halfDayType = explicitHalfDayType ?? (hasActiveSession ? 'second_half' : 'first_half');
+    final reason = (halfDayType == 'second_half')
         ? 'Second half leave - ending work early'
-        : 'First half leave';
+        : 'First half leave - arriving late or taking morning off';
 
-    // End session if active
-    if (hasActiveSession) {
-      await timeLogProvider.endSession(endReason: 'half_day');
-    }
-
-    // Apply half-day leave
+    // Apply half-day leave first
     final success = await leaveProvider.applyLeave(
       leaveType: 'half_day',
       startDate: DateTime.now(),
@@ -1464,12 +1546,18 @@ class _StaffDashboardState extends State<StaffDashboard> {
     );
 
     if (success) {
+      // If leave applied successfully, handle session
+      // End session only if it's second half leave (leaving early)
+      if (hasActiveSession && halfDayType == 'second_half') {
+        await timeLogProvider.endSession(endReason: 'half_day', customReason: 'second half');
+      }
+
       scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text(
-            hasActiveSession
+            halfDayType == 'second_half'
                 ? 'Session ended and second half leave applied!'
-                : 'First half leave applied successfully!',
+                : 'First half leave applied successfully! You can continue your session.',
           ),
           backgroundColor: AppColors.success,
         ),
@@ -1477,9 +1565,10 @@ class _StaffDashboardState extends State<StaffDashboard> {
       await _loadData();
       await authProvider.refreshUserData();
     } else {
+      final errorMessage = leaveProvider.errorMessage ?? 'Failed to apply leave';
       scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Text('Failed to apply leave'),
+        SnackBar(
+          content: Text(errorMessage.replaceAll('Exception: ', '')),
           backgroundColor: AppColors.error,
         ),
       );
@@ -1623,6 +1712,19 @@ class _StaffDashboardState extends State<StaffDashboard> {
                 return;
               }
 
+
+              // Check for conflicts
+              final conflictError = _checkLeaveConflict(DateTime.now(), 'half_day');
+              if (conflictError != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(conflictError),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+
               final leaveProvider = context.read<LeaveProvider>();
               final authProvider = context.read<AuthProvider>();
               final scaffoldMessenger = ScaffoldMessenger.of(context);
@@ -1724,6 +1826,22 @@ class _StaffDashboardState extends State<StaffDashboard> {
                       lastDate: DateTime.now().add(const Duration(days: 365)),
                     );
                     if (picked != null) {
+                      // Check for conflicts if start date changes and is same day
+                      if (leaveType == 'short' || leaveType == 'half_day') {
+                         final conflictError = _checkLeaveConflict(picked, leaveType);
+                         if (conflictError != null) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(conflictError),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                            }
+                            // Don't set state if conflict? Or just warn? Warn is better but blocking submit is key.
+                            // Let's allow setting state but block submit.
+                         }
+                      }
                       setState(() {
                         startDate = picked;
                         if (endDate.isBefore(startDate)) {
@@ -1846,6 +1964,18 @@ class _StaffDashboardState extends State<StaffDashboard> {
                   return;
                 }
 
+                // Check for conflicts
+                final conflictError = _checkLeaveConflict(startDate, leaveType);
+                if (conflictError != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(conflictError),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                  return;
+                }
+
                 final totalDays = endDate.difference(startDate).inDays + 1;
                 final leaveProvider = context.read<LeaveProvider>();
                 final authProvider = context.read<AuthProvider>();
@@ -1892,6 +2022,46 @@ class _StaffDashboardState extends State<StaffDashboard> {
         ),
       ),
     );
+  }
+
+  // Check for leave conflicts
+  // Returns an error message if conflict exists, null otherwise
+  String? _checkLeaveConflict(DateTime date, String newLeaveType) {
+    if (newLeaveType != 'short' && newLeaveType != 'half_day') return null;
+
+    final leaveProvider = context.read<LeaveProvider>();
+    final targetDate = DateTime(date.year, date.month, date.day);
+
+    for (final leave in leaveProvider.myLeaves) {
+      if (leave.status == 'rejected' || leave.status == 'cancelled') continue;
+
+      final startDate = DateTime(
+        leave.startDate.year,
+        leave.startDate.month,
+        leave.startDate.day,
+      );
+      final endDate = leave.endDate != null
+          ? DateTime(
+              leave.endDate!.year,
+              leave.endDate!.month,
+              leave.endDate!.day,
+            )
+          : startDate;
+
+      // Check if target date falls within the leave period
+      if (targetDate.isAtSameMomentAs(startDate) ||
+          targetDate.isAtSameMomentAs(endDate) ||
+          (targetDate.isAfter(startDate) && targetDate.isBefore(endDate))) {
+        
+        if (newLeaveType == 'half_day' && leave.leaveType == 'short') {
+          return 'Cannot apply for Half Day leave as you already have a Short leave for this date.';
+        }
+        if (newLeaveType == 'short' && leave.leaveType == 'half_day') {
+          return 'Cannot apply for Short leave as you already have a Half Day leave for this date.';
+        }
+      }
+    }
+    return null;
   }
 
   Color _getLeaveStatusColor(String status) {

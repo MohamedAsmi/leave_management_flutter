@@ -1,3 +1,5 @@
+// ignore_for_file: unused_local_variable
+
 import 'dart:html' as html;
 
 void downloadCsvFile(List<int> bytes, String fileName) {

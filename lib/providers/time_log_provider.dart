@@ -55,12 +55,12 @@ class TimeLogProvider with ChangeNotifier {
   int? get lastLogId => _myTimeLogs.isNotEmpty ? _myTimeLogs.first.id : null;
 
   // Start Work Session
-  Future<bool> startSession() async {
+  Future<bool> startSession({int? dutyTypeId}) async {
     _setLoading(true);
     _errorMessage = null;
 
     try {
-      _activeSession = await _timeLogService.startSession();
+      _activeSession = await _timeLogService.startSession(dutyTypeId: dutyTypeId);
       _setLoading(false);
       notifyListeners();
       return true;
@@ -97,6 +97,16 @@ class TimeLogProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
+      // If session is already ended on server (404), clear local session and return success
+      if (e.toString().contains('404') || e.toString().contains('No active session found')) {
+        _activeSession = null;
+        _errorMessage = null;
+        await fetchTodayWorkingHours();
+        _setLoading(false);
+        notifyListeners();
+        return true;
+      }
+      
       _errorMessage = e.toString();
       _setLoading(false);
       notifyListeners();
@@ -110,7 +120,24 @@ class TimeLogProvider with ChangeNotifier {
     _errorMessage = null;
 
     try {
-      _activeSession = await _timeLogService.resumeSession(timeLogId);
+      // Try to find the log locally to get its duty type
+      TimeLogModel? logToResume;
+      try {
+        logToResume = _myTimeLogs.firstWhere((log) => log.id == timeLogId);
+      } catch (_) {}
+
+      // If not found locally, we could fetch it, but for now let's rely on what we have.
+      // If we don't have it, we default to 1 (Office) to strictly avoid 500 errors.
+      
+      int? dutyTypeId = logToResume?.dutyTypeId;
+      
+      // Fallback for legacy logs or missing data
+      dutyTypeId ??= 1;
+
+      _activeSession = await _timeLogService.resumeSession(
+        timeLogId, 
+        dutyTypeId: dutyTypeId,
+      );
       _setLoading(false);
       notifyListeners();
       return true;

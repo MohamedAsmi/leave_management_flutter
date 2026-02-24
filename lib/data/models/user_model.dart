@@ -32,10 +32,10 @@ class UserModel extends HiveObject {
   final DateTime? joinedDate;
 
   @HiveField(9)
-  final int casualLeaveBalance;
+  final double casualLeaveBalance;
 
   @HiveField(10)
-  final int shortLeaveBalance;
+  final double shortLeaveBalance;
 
   @HiveField(11)
   final bool isActive;
@@ -47,7 +47,13 @@ class UserModel extends HiveObject {
   final DateTime? updatedAt;
 
   @HiveField(14)
-  final double halfDayLeaveBalance;
+  final double halfDayLeaveBalance; // Keeping for backward compatibility if needed
+
+  @HiveField(15)
+  final double annualLeaveBalance;
+
+  @HiveField(16)
+  final double medicalLeaveBalance;
 
   UserModel({
     required this.id,
@@ -59,9 +65,11 @@ class UserModel extends HiveObject {
     this.designation,
     this.profileImage,
     this.joinedDate,
-    this.casualLeaveBalance = 0,
-    this.shortLeaveBalance = 0,
+    this.casualLeaveBalance = 0.0,
+    this.shortLeaveBalance = 0.0,
     this.halfDayLeaveBalance = 0.0,
+    this.annualLeaveBalance = 0.0,
+    this.medicalLeaveBalance = 0.0,
     this.isActive = true,
     this.createdAt,
     this.updatedAt,
@@ -96,9 +104,11 @@ class UserModel extends HiveObject {
       joinedDate: json['joined_date'] != null
           ? DateTime.parse(json['joined_date'])
           : null,
-      casualLeaveBalance: _parseToInt(json['casual_leave_balance']),
-      shortLeaveBalance: _parseToInt(json['short_leave_balance']),
+      casualLeaveBalance: _parseToDouble(json['casual_leave_balance']),
+      shortLeaveBalance: _parseToDouble(json['short_leave_balance']),
       halfDayLeaveBalance: _parseToDouble(json['half_day_leave_balance']),
+      annualLeaveBalance: _parseToDouble(json['annual_leave_balance']),
+      medicalLeaveBalance: _parseToDouble(json['medical_leave_balance']),
       isActive: json['is_active'] ?? true,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
@@ -123,6 +133,8 @@ class UserModel extends HiveObject {
       'casual_leave_balance': casualLeaveBalance,
       'short_leave_balance': shortLeaveBalance,
       'half_day_leave_balance': halfDayLeaveBalance,
+      'annual_leave_balance': annualLeaveBalance,
+      'medical_leave_balance': medicalLeaveBalance,
       'is_active': isActive,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
@@ -139,9 +151,11 @@ class UserModel extends HiveObject {
     String? designation,
     String? profileImage,
     DateTime? joinedDate,
-    int? casualLeaveBalance,
-    int? shortLeaveBalance,
+    double? casualLeaveBalance,
+    double? shortLeaveBalance,
     double? halfDayLeaveBalance,
+    double? annualLeaveBalance,
+    double? medicalLeaveBalance,
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -159,6 +173,8 @@ class UserModel extends HiveObject {
       casualLeaveBalance: casualLeaveBalance ?? this.casualLeaveBalance,
       shortLeaveBalance: shortLeaveBalance ?? this.shortLeaveBalance,
       halfDayLeaveBalance: halfDayLeaveBalance ?? this.halfDayLeaveBalance,
+      annualLeaveBalance: annualLeaveBalance ?? this.annualLeaveBalance,
+      medicalLeaveBalance: medicalLeaveBalance ?? this.medicalLeaveBalance,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

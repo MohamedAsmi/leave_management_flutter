@@ -40,6 +40,9 @@ class TimeLogModel extends HiveObject {
   @HiveField(11)
   final DateTime? updatedAt;
 
+  @HiveField(12)
+  final int? dutyTypeId;
+
   TimeLogModel({
     required this.id,
     required this.userId,
@@ -53,6 +56,7 @@ class TimeLogModel extends HiveObject {
     this.isActive = true,
     this.createdAt,
     this.updatedAt,
+    this.dutyTypeId,
   });
 
   factory TimeLogModel.fromJson(Map<String, dynamic> json) {
@@ -81,6 +85,7 @@ class TimeLogModel extends HiveObject {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'])
           : null,
+      dutyTypeId: json['duty_type_id'],
     );
   }
 
@@ -98,6 +103,7 @@ class TimeLogModel extends HiveObject {
       'is_active': isActive,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
+      'duty_type_id': dutyTypeId,
     };
   }
 
@@ -114,6 +120,7 @@ class TimeLogModel extends HiveObject {
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
+    int? dutyTypeId,
   }) {
     return TimeLogModel(
       id: id ?? this.id,
@@ -128,6 +135,7 @@ class TimeLogModel extends HiveObject {
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      dutyTypeId: dutyTypeId ?? this.dutyTypeId,
     );
   }
 }

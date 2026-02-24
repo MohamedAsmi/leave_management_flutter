@@ -18,6 +18,11 @@ class AuthProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isLoggedIn => _currentUser != null;
 
+  bool get canApproveLeaves {
+    if (_currentUser == null) return false;
+    return _currentUser!.isAdmin || _currentUser!.isHR;
+  }
+
   // Login
   Future<bool> login({required String email, required String password}) async {
     _setLoading(true);

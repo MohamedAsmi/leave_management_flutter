@@ -14,12 +14,17 @@ import 'package:leave_management/providers/leave_provider.dart';
 import 'package:leave_management/providers/time_log_provider.dart';
 import 'package:leave_management/providers/notification_provider.dart';
 import 'package:leave_management/routes/app_router.dart';
+import 'package:leave_management/data/services/duty_type_service.dart';
+import 'package:leave_management/data/models/duty_type_model.dart';
+import 'package:leave_management/providers/duty_type_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Hive
   await Hive.initFlutter();
+  Hive.registerAdapter(DutyTypeAdapter());
+  await Hive.openBox<DutyType>('duty_types');
 
   // Initialize Storage Service
   final storageService = StorageService();
@@ -32,6 +37,7 @@ void main() async {
   final timeLogService = TimeLogService(apiClient);
   final notificationService = NotificationService(apiClient);
   final userService = UserService(apiClient);
+  final dutyTypeService = DutyTypeService(apiClient);
 
   runApp(
     MultiProvider(
@@ -48,6 +54,7 @@ void main() async {
         Provider<TimeLogService>.value(value: timeLogService),
         Provider<NotificationService>.value(value: notificationService),
         Provider<UserService>.value(value: userService),
+        Provider<DutyTypeService>.value(value: dutyTypeService),
 
         // Providers
         ChangeNotifierProvider(
@@ -58,6 +65,13 @@ void main() async {
         ChangeNotifierProvider(create: (_) => TimeLogProvider(timeLogService)),
         ChangeNotifierProvider(
           create: (_) => NotificationProvider(notificationService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) {
+            final provider = DutyTypeProvider(dutyTypeService);
+            provider.fetchAndCacheDutyTypes();
+            return provider;
+          },
         ),
       ],
       child: const MyApp(),

@@ -13,8 +13,8 @@ class LeaveService {
     required DateTime startDate,
     DateTime? endDate,
     required String reason,
-    int? totalDays,
-    String? halfDayType,
+    double? totalDays,
+    String? leaveMode,
   }) async {
     final response = await _apiClient.post(
       '/leaves',
@@ -24,7 +24,7 @@ class LeaveService {
         if (endDate != null) 'end_date': endDate.toIso8601String(),
         'reason': reason,
         if (totalDays != null) 'total_days': totalDays,
-        if (halfDayType != null) 'half_day_type': halfDayType,
+        if (leaveMode != null) 'leave_mode': leaveMode,
       },
     );
 

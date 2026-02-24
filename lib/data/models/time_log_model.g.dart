@@ -29,13 +29,14 @@ class TimeLogModelAdapter extends TypeAdapter<TimeLogModel> {
       isActive: fields[9] as bool,
       createdAt: fields[10] as DateTime?,
       updatedAt: fields[11] as DateTime?,
+      dutyTypeId: fields[12] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, TimeLogModel obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -59,7 +60,9 @@ class TimeLogModelAdapter extends TypeAdapter<TimeLogModel> {
       ..writeByte(10)
       ..write(obj.createdAt)
       ..writeByte(11)
-      ..write(obj.updatedAt);
+      ..write(obj.updatedAt)
+      ..writeByte(12)
+      ..write(obj.dutyTypeId);
   }
 
   @override

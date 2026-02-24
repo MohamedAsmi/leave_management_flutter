@@ -5,6 +5,9 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/leave_provider.dart';
 import '../../../providers/time_log_provider.dart';
 import '../../../providers/notification_provider.dart';
+import '../../../providers/duty_type_provider.dart';
+import '../../../data/models/duty_type_model.dart';
+import '../../../data/models/time_log_model.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/utils/date_time_utils.dart';
 import 'package:intl/intl.dart';
@@ -1101,10 +1104,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget _buildBalanceCard(
     String title,
-    int count,
+    num count,
     IconData icon,
     Color color,
   ) {
+    // Format to remove trailing .0 if generic integer
+    String formattedCount = count % 1 == 0 ? count.toInt().toString() : count.toString();
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1113,7 +1119,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             Icon(icon, color: color, size: 32),
             const SizedBox(height: 8),
             Text(
-              '$count',
+              formattedCount,
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
@@ -1236,17 +1242,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       child: ElevatedButton.icon(
                         onPressed: hasActiveSession
                             ? null
-                            : () async {
-                                final success = await timeLogProvider
-                                    .startSession();
-                                if (context.mounted && success) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Session started!'),
-                                      backgroundColor: AppColors.success,
-                                    ),
-                                  );
-                                }
+                            : () {
+                                _showDutyTypeSelectionDialog();
                               },
                         icon: const Icon(Icons.play_arrow),
                         label: const Text('Start'),
@@ -1376,6 +1373,77 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  void _showDutyTypeSelectionDialog() {
+    final dutyTypeProvider = context.read<DutyTypeProvider>();
+    dutyTypeProvider.loadFromCache();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Duty Type'),
+        content: Consumer<DutyTypeProvider>(
+          builder: (context, DutyTypeProvider provider, _) {
+            if (provider.isLoading) {
+              return const SizedBox(
+                height: 100,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            if (provider.dutyTypes.isEmpty) {
+              provider.fetchAndCacheDutyTypes();
+              return const SizedBox(
+                height: 100,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            return SizedBox(
+              width: double.maxFinite,
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: provider.dutyTypes.length,
+                itemBuilder: (context, index) {
+                  final type = provider.dutyTypes[index];
+                  return ListTile(
+                    title: Text(type.name),
+                    subtitle: type.type != null ? Text(type.type!) : null,
+                    leading: const Icon(Icons.work),
+                    onTap: () async {
+                      Navigator.pop(context); // Close dialog
+                      await _startSession(type.id);
+                    },
+                  );
+                },
+              ),
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _startSession(int dutyTypeId) async {
+    final timeLogProvider = context.read<TimeLogProvider>();
+    final success = await timeLogProvider.startSession(dutyTypeId: dutyTypeId);
+
+    if (mounted && success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Session started!'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      await _loadDashboardData();
+    }
+  }
+
   Future<void> _endSession(
     String reason,
     BuildContext dialogContext, {
@@ -1450,7 +1518,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         reason:
             'Half day leave (converted from ${shortLeaveCount + 1} short leaves)',
         totalDays: 1,
-        halfDayType: halfDayType,
+        leaveMode: halfDayType,
       );
 
       if (success) {
@@ -1564,7 +1632,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       startDate: DateTime.now(),
       reason: reason,
       totalDays: 1,
-      halfDayType: halfDayType,
+      leaveMode: halfDayType,
     );
 
     if (success) {
@@ -1738,7 +1806,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 startDate: DateTime.now(),
                 reason: reason,
                 totalDays: 1,
-                halfDayType: halfDayType,
+                leaveMode: halfDayType,
               );
 
               if (success) {

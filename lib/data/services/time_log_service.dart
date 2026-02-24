@@ -7,8 +7,13 @@ class TimeLogService {
   TimeLogService(this._apiClient);
 
   // Start Work Session
-  Future<TimeLogModel> startSession() async {
-    final response = await _apiClient.post('/time-logs/start');
+  Future<TimeLogModel> startSession({int? dutyTypeId}) async {
+    final response = await _apiClient.post(
+      '/time-logs/start',
+      data: {
+        if (dutyTypeId != null) 'duty_type_id': dutyTypeId,
+      },
+    );
     return TimeLogModel.fromJson(response.data['time_log']);
   }
 
@@ -27,8 +32,13 @@ class TimeLogService {
   }
 
   // Resume Session
-  Future<TimeLogModel> resumeSession(int timeLogId) async {
-    final response = await _apiClient.post('/time-logs/$timeLogId/resume');
+  Future<TimeLogModel> resumeSession(int timeLogId, {int? dutyTypeId}) async {
+    final response = await _apiClient.post(
+      '/time-logs/$timeLogId/resume',
+      data: {
+        if (dutyTypeId != null) 'duty_type_id': dutyTypeId,
+      },
+    );
     return TimeLogModel.fromJson(response.data['time_log']);
   }
 
@@ -120,6 +130,22 @@ class TimeLogService {
     int? userId,
   }) async {
     final response = await _apiClient.get('/time-logs/report', queryParameters: {
+      'start_date': startDate.toIso8601String(),
+      'end_date': endDate.toIso8601String(),
+      if (userId != null) 'user_id': userId,
+    });
+
+    final reportData = response.data['report'] as List;
+    return reportData.map((item) => item as Map<String, dynamic>).toList();
+  }
+
+  // Get Comprehensive Report for CSV (Admin/HR)
+  Future<List<Map<String, dynamic>>> getComprehensiveReport({
+    required DateTime startDate,
+    required DateTime endDate,
+    int? userId,
+  }) async {
+    final response = await _apiClient.get('/time-logs/comprehensive-report', queryParameters: {
       'start_date': startDate.toIso8601String(),
       'end_date': endDate.toIso8601String(),
       if (userId != null) 'user_id': userId,

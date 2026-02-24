@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/leave_provider.dart';
 import '../../../core/constants/colors.dart';
 import '../../../data/models/leave_model.dart';
@@ -59,6 +60,7 @@ class LeaveDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusColor = _getStatusColor(leave.status);
+    final user = context.watch<AuthProvider>().currentUser;
 
     return Scaffold(
       appBar: AppBar(
@@ -141,6 +143,13 @@ class LeaveDetailScreen extends StatelessWidget {
                     const Divider(),
                     _buildDetailRow(
                       context,
+                      'Leave Mode',
+                      leave.formattedLeaveMode,
+                      Icons.grid_view,
+                    ),
+                    const Divider(),
+                    _buildDetailRow(
+                      context,
                       'Start Date',
                       DateFormat('MMM d, y').format(leave.startDate.toLocal()),
                       Icons.date_range,
@@ -179,8 +188,44 @@ class LeaveDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // Cancel Button (only for pending leaves)
-            if (leave.status == 'pending')
+            // Approve/Reject Buttons (for HR/Admin on pending leaves)
+            if (leave.status == 'pending' &&
+                context.read<AuthProvider>().canApproveLeaves) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _rejectLeave(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        side: BorderSide(color: AppColors.error),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.close),
+                      label: const Text('Reject'),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _approveLeave(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.success,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.check, color: Colors.white),
+                      label: const Text(
+                        'Approve',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ] else if (leave.status == 'pending' &&
+                user != null &&
+                user.id == leave.userId) ...[
+              // Cancel Button (only for owner of the leave)
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -196,8 +241,86 @@ class LeaveDetailScreen extends StatelessWidget {
                   ),
                 ),
               ),
+            ],
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _approveLeave(BuildContext context) async {
+    final success = await context.read<LeaveProvider>().approveLeave(leave.id);
+    if (context.mounted) {
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(content: Text('Leave Approved Successfully!'), backgroundColor: AppColors.success),
+        );
+        Navigator.pop(context);
+      } else {
+         ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(content: Text('Failed to approve leave'), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
+  Future<void> _rejectLeave(BuildContext context) async {
+    final reasonController = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reject Leave'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Please provide a reason for rejection:'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                hintText: 'Rejection reason',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () async {
+              if (reasonController.text.trim().isEmpty) {
+                 ScaffoldMessenger.of(context).showSnackBar(
+                   const SnackBar(content: Text('Reason is required'), backgroundColor: AppColors.error),
+                );
+                return;
+              }
+              Navigator.pop(context); // Close dialog
+              final success = await context.read<LeaveProvider>().rejectLeave(
+                leaveId: leave.id, 
+                reason: reasonController.text.trim()
+              );
+              
+              if (context.mounted) {
+                if (success) {
+                   ScaffoldMessenger.of(context).showSnackBar(
+                     const SnackBar(content: Text('Leave Rejected'), backgroundColor: AppColors.success),
+                  );
+                  Navigator.pop(context); // Close detail screen
+                } else {
+                   ScaffoldMessenger.of(context).showSnackBar(
+                     const SnackBar(content: Text('Failed to reject leave'), backgroundColor: AppColors.error),
+                  );
+                }
+              }
+            },
+            child: const Text('Reject', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }

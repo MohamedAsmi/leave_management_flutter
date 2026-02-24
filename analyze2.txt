@@ -1,0 +1,7 @@
+Analyzing csv_export_utils.dart...                              
+
+  error - The name 'ListToCsvConverter' isn't a class - lib\core\utils\csv_export_utils.dart:40:28 - creation_with_non_type
+   info - 'Share' is deprecated and shouldn't be used. Use SharePlus instead - lib\core\utils\csv_export_utils.dart:49:11 - deprecated_member_use
+   info - 'shareXFiles' is deprecated and shouldn't be used. Use SharePlus.instance.share() instead - lib\core\utils\csv_export_utils.dart:49:17 - deprecated_member_use
+
+3 issues found. (ran in 2.4s)

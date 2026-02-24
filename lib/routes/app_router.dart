@@ -4,10 +4,16 @@ import 'package:leave_management/presentation/screens/auth/register_screen.dart'
 import 'package:leave_management/presentation/screens/staff/staff_dashboard.dart';
 import 'package:leave_management/presentation/screens/admin/admin_dashboard.dart';
 import 'package:leave_management/presentation/screens/hr/hr_dashboard.dart';
+import 'package:leave_management/presentation/screens/hr/leave_approval_screen.dart';
+import 'package:leave_management/presentation/screens/staff/apply_leave_screen.dart';
 import 'package:leave_management/presentation/screens/staff/my_leaves_screen.dart';
 import 'package:leave_management/presentation/screens/staff/leave_detail_screen.dart';
 import 'package:leave_management/data/models/leave_model.dart';
 import 'package:leave_management/providers/auth_provider.dart';
+
+import 'package:leave_management/presentation/screens/hr/employee_list_screen.dart';
+import 'package:leave_management/presentation/screens/hr/user_attendance_detail_screen.dart';
+import 'package:leave_management/data/models/user_model.dart';
 
 class AppRouter {
   static GoRouter router(AuthProvider authProvider) => GoRouter(
@@ -76,6 +82,23 @@ class AppRouter {
         path: '/hr/dashboard',
         builder: (context, state) => const HRDashboard(),
       ),
+      GoRoute(
+        path: '/hr/leave-approvals',
+        builder: (context, state) => const LeaveApprovalScreen(),
+      ),
+
+      GoRoute(
+        path: '/hr/attendance',
+        builder: (context, state) => const EmployeeListScreen(),
+      ),
+
+      GoRoute(
+        path: '/hr/attendance-detail',
+        builder: (context, state) {
+          final user = state.extra as UserModel;
+          return UserAttendanceDetailScreen(user: user);
+        },
+      ),
 
       GoRoute(
         path: '/staff/dashboard',
@@ -95,6 +118,12 @@ class AppRouter {
             },
           ),
         ],
+      ),
+      
+      // Apply Leave
+      GoRoute(
+        path: '/apply-leave',
+        builder: (context, state) => const ApplyLeaveScreen(),
       ),
     ],
   );

@@ -28,8 +28,8 @@ class LeaveProvider with ChangeNotifier {
     required DateTime startDate,
     DateTime? endDate,
     required String reason,
-    int? totalDays,
-    String? halfDayType,
+    double? totalDays,
+    String? leaveMode,
   }) async {
     _setLoading(true);
     _errorMessage = null;
@@ -41,7 +41,7 @@ class LeaveProvider with ChangeNotifier {
         endDate: endDate,
         reason: reason,
         totalDays: totalDays,
-        halfDayType: halfDayType,
+        leaveMode: leaveMode,
       );
 
       _myLeaves.insert(0, leave);

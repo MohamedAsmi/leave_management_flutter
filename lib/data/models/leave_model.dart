@@ -41,7 +41,7 @@ class LeaveModel extends HiveObject {
   final String? rejectionReason;
 
   @HiveField(12)
-  final int totalDays;
+  final double totalDays;
 
   @HiveField(13)
   final DateTime? createdAt;
@@ -50,7 +50,10 @@ class LeaveModel extends HiveObject {
   final DateTime? updatedAt;
 
   @HiveField(15)
-  final String? halfDayType; // 'first_half' or 'second_half'
+  final String? halfDayType; // 'first_half' or 'second_half' - keeping for backward compatibility
+
+  @HiveField(16)
+  final String? leaveMode; // 'full_day', 'first_half', 'second_half'
 
   LeaveModel({
     required this.id,
@@ -65,10 +68,11 @@ class LeaveModel extends HiveObject {
     this.approvedByName,
     this.approvedAt,
     this.rejectionReason,
-    this.totalDays = 1,
+    this.totalDays = 1.0,
     this.createdAt,
     this.updatedAt,
     this.halfDayType,
+    this.leaveMode,
   });
 
   factory LeaveModel.fromJson(Map<String, dynamic> json) {
@@ -91,7 +95,7 @@ class LeaveModel extends HiveObject {
           ? DateTime.parse(json['approved_at'])
           : null,
       rejectionReason: json['rejection_reason'],
-      totalDays: json['total_days'] ?? 1,
+      totalDays: (json['total_days'] ?? 1).toDouble(),
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : null,
@@ -99,6 +103,7 @@ class LeaveModel extends HiveObject {
           ? DateTime.parse(json['updated_at'])
           : null,
       halfDayType: json['half_day_type'],
+      leaveMode: json['leave_mode'] ?? json['half_day_type'],
     );
   }
 
@@ -120,6 +125,7 @@ class LeaveModel extends HiveObject {
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
       if (halfDayType != null) 'half_day_type': halfDayType,
+      if (leaveMode != null) 'leave_mode': leaveMode,
     };
   }
 
@@ -136,10 +142,11 @@ class LeaveModel extends HiveObject {
     String? approvedByName,
     DateTime? approvedAt,
     String? rejectionReason,
-    int? totalDays,
+    double? totalDays,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? halfDayType,
+    String? leaveMode,
   }) {
     return LeaveModel(
       id: id ?? this.id,
@@ -158,10 +165,25 @@ class LeaveModel extends HiveObject {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       halfDayType: halfDayType ?? this.halfDayType,
+      leaveMode: leaveMode ?? this.leaveMode,
     );
   }
 
   bool get isPending => status == 'pending';
   bool get isApproved => status == 'approved';
   bool get isRejected => status == 'rejected';
+
+  String get formattedLeaveMode {
+    if (leaveMode == null) return 'Full Day';
+    switch (leaveMode) {
+      case 'first_half':
+        return 'First Half';
+      case 'second_half':
+        return 'Second Half';
+      case 'full_day':
+        return 'Full Day';
+      default:
+        return leaveMode!.split('_').map((e) => e[0].toUpperCase() + e.substring(1)).join(' ');
+    }
+  }
 }

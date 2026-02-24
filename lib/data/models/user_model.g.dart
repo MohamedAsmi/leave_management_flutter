@@ -26,19 +26,21 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       designation: fields[6] as String?,
       profileImage: fields[7] as String?,
       joinedDate: fields[8] as DateTime?,
-      casualLeaveBalance: fields[9] as int,
-      shortLeaveBalance: fields[10] as int,
+      casualLeaveBalance: fields[9] as double,
+      shortLeaveBalance: fields[10] as double,
+      halfDayLeaveBalance: fields[14] as double,
+      annualLeaveBalance: fields[15] as double,
+      medicalLeaveBalance: fields[16] as double,
       isActive: fields[11] as bool,
       createdAt: fields[12] as DateTime?,
       updatedAt: fields[13] as DateTime?,
-      halfDayLeaveBalance: fields[14] as double? ?? 0.0,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserModel obj) {
     writer
-      ..writeByte(15)
+      ..writeByte(17)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -68,7 +70,11 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       ..writeByte(13)
       ..write(obj.updatedAt)
       ..writeByte(14)
-      ..write(obj.halfDayLeaveBalance);
+      ..write(obj.halfDayLeaveBalance)
+      ..writeByte(15)
+      ..write(obj.annualLeaveBalance)
+      ..writeByte(16)
+      ..write(obj.medicalLeaveBalance);
   }
 
   @override

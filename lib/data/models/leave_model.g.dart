@@ -29,17 +29,18 @@ class LeaveModelAdapter extends TypeAdapter<LeaveModel> {
       approvedByName: fields[9] as String?,
       approvedAt: fields[10] as DateTime?,
       rejectionReason: fields[11] as String?,
-      totalDays: fields[12] as int,
+      totalDays: fields[12] as double,
       createdAt: fields[13] as DateTime?,
       updatedAt: fields[14] as DateTime?,
       halfDayType: fields[15] as String?,
+      leaveMode: fields[16] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, LeaveModel obj) {
     writer
-      ..writeByte(16)
+      ..writeByte(17)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -71,7 +72,9 @@ class LeaveModelAdapter extends TypeAdapter<LeaveModel> {
       ..writeByte(14)
       ..write(obj.updatedAt)
       ..writeByte(15)
-      ..write(obj.halfDayType);
+      ..write(obj.halfDayType)
+      ..writeByte(16)
+      ..write(obj.leaveMode);
   }
 
   @override

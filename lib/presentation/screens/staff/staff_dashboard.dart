@@ -8,7 +8,10 @@ import 'package:leave_management/providers/auth_provider.dart';
 import 'package:leave_management/providers/leave_provider.dart';
 import 'package:leave_management/providers/time_log_provider.dart';
 import 'package:leave_management/providers/notification_provider.dart';
+import 'package:leave_management/providers/duty_type_provider.dart';
 import 'package:leave_management/presentation/screens/staff/time_log_screen.dart';
+import 'package:leave_management/presentation/screens/staff/apply_leave_screen.dart';
+import 'package:leave_management/presentation/screens/staff/leave_detail_screen.dart';
 
 class StaffDashboard extends StatefulWidget {
   const StaffDashboard({super.key});
@@ -439,16 +442,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
                           onPressed: timeLogProvider.hasDutyStartedToday
                               ? null // Disable if duty started today (permanently for the day)
                               : () async {
-                                  final success = await timeLogProvider.startSession();
-                                  if (context.mounted && success) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Session started!'),
-                                        backgroundColor: AppColors.success,
-                                      ),
-                                    );
-                                    await _loadData();
-                                  }
+                                  _showDutyTypeSelectionDialog();
                                 },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: timeLogProvider.isDutyCompletedToday
@@ -581,28 +575,37 @@ class _StaffDashboardState extends State<StaffDashboard> {
       children: [
         Expanded(
           child: _buildBalanceCard(
-            'Casual Leave',
+            'Annual',
+            user?.annualLeaveBalance ?? 0,
+            Icons.calendar_month,
+            Colors.purple,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildBalanceCard(
+            'Medical',
+            user?.medicalLeaveBalance ?? 0,
+            Icons.medical_services,
+            Colors.redAccent,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildBalanceCard(
+            'Casual',
             user?.casualLeaveBalance ?? 0,
             Icons.beach_access,
-            AppColors.info,
+            Colors.orange,
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
         Expanded(
           child: _buildBalanceCard(
-            'Short Leave',
+            'Short',
             user?.shortLeaveBalance ?? 0,
             Icons.schedule,
-            AppColors.warning,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildBalanceCard(
-            'Half Day',
-            user?.halfDayLeaveBalance ?? 0.0,
-            Icons.event_busy,
-            AppColors.secondary,
+            Colors.blue,
           ),
         ),
       ],
@@ -610,34 +613,47 @@ class _StaffDashboardState extends State<StaffDashboard> {
   }
 
   Widget _buildBalanceCard(
-    String title,
-    num count, // Changed from int to num to support double
-    IconData icon,
-    Color color,
-  ) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
-            Text(
-              '$count',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+      String title, num count, IconData icon, Color color) {
+    // Format to remove trailing .0 if generic integer
+    String formattedCount = count % 1 == 0 ? count.toInt().toString() : count.toString();
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(
+            formattedCount,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 12),
-              textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
             ),
-          ],
-        ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }
@@ -901,7 +917,11 @@ class _StaffDashboardState extends State<StaffDashboard> {
               Icons.event_available,
               AppColors.primary,
               () {
-                _showApplyLeaveDialog();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const ApplyLeaveScreen(),
+                  ),
+                ).then((_) => _loadData());
               },
             ),
             _buildActionCard(
@@ -1023,6 +1043,14 @@ class _StaffDashboardState extends State<StaffDashboard> {
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LeaveDetailScreen(leave: leave),
+                          ),
+                        ).then((_) => _loadData());
+                      },
                       leading: CircleAvatar(
                         backgroundColor: _getLeaveStatusColor(
                           leave.status,
@@ -1037,8 +1065,10 @@ class _StaffDashboardState extends State<StaffDashboard> {
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       subtitle: Text(
-                        leave.leaveType == 'half_day'
-                            ? '${DateTimeUtils.formatDate(leave.startDate)} - Half Day'
+                        (leave.leaveType == 'half_day' ||
+                                leave.leaveMode == 'first_half' ||
+                                leave.leaveMode == 'second_half')
+                            ? '${DateTimeUtils.formatDate(leave.startDate)} - ${leave.formattedLeaveMode}'
                             : '${DateTimeUtils.formatDate(leave.startDate)} - ${leave.endDate != null ? DateTimeUtils.formatDate(leave.endDate!) : 'Same day'}',
                       ),
                       trailing: Row(
@@ -1190,14 +1220,14 @@ class _StaffDashboardState extends State<StaffDashboard> {
                 await _endSessionAndApplyShortLeave();
               },
             ),
-            ListTile(
-              title: const Text('Half Day'),
-              leading: const Icon(Icons.event_busy),
-              onTap: () {
-                Navigator.pop(context);
-                _showHalfDaySelectionDialog();
-              },
-            ),
+            // ListTile(
+            //   title: const Text('Half Day'),
+            //   leading: const Icon(Icons.event_busy),
+            //   onTap: () {
+            //     Navigator.pop(context);
+            //     _showHalfDaySelectionDialog();
+            //   },
+            // ),
             // ListTile(
             //   title: const Text('End Work Today'),
             //   leading: const Icon(Icons.work_off),
@@ -1333,231 +1363,22 @@ class _StaffDashboardState extends State<StaffDashboard> {
     final authProvider = context.read<AuthProvider>();
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-    // Check if there's already a short leave for today
-    final today = DateTime.now();
-    final todayDate = DateTime(today.year, today.month, today.day);
-    int shortLeaveCount = 0;
-    List<int> todayShortLeaveIds = [];
-
-    for (final leave in leaveProvider.myLeaves) {
-      if (leave.status == 'rejected') continue;
-
-      final startDate = DateTime(
-        leave.startDate.year,
-        leave.startDate.month,
-        leave.startDate.day,
-      );
-      final endDate = leave.endDate != null
-          ? DateTime(
-              leave.endDate!.year,
-              leave.endDate!.month,
-              leave.endDate!.day,
-            )
-          : startDate;
-
-      // Check if today falls within the leave period
-      if (todayDate.isAtSameMomentAs(startDate) ||
-          todayDate.isAtSameMomentAs(endDate) ||
-          (todayDate.isAfter(startDate) && todayDate.isBefore(endDate))) {
-        if (leave.leaveType == 'short') {
-          shortLeaveCount++;
-          todayShortLeaveIds.add(leave.id);
-        }
-      }
-    }
-
-    // End session first
-    await timeLogProvider.endSession(endReason: 'short_leave');
-
-    // If already has 1 or more short leaves, apply half-day instead
-    if (shortLeaveCount >= 1) {
-      // Cancel all existing short leaves for today
-      for (final leaveId in todayShortLeaveIds) {
-        await leaveProvider.cancelLeave(leaveId);
-      }
-
-      final halfDayType = 'first_half';
-
-      final success = await leaveProvider.applyLeave(
-        leaveType: 'half_day',
-        startDate: DateTime.now(),
-        reason:
-            'Half day leave (converted from ${shortLeaveCount + 1} short leaves)',
-        totalDays: 1,
-        halfDayType: halfDayType,
-      );
-
-      if (success) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              'Converted ${shortLeaveCount + 1} short leaves to half-day leave!',
-            ),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        await _loadData();
-        await authProvider.refreshUserData();
-      } else {
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(
-            content: Text('Failed to apply leave'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    } else {
-      // Apply short leave with default reason
-      final success = await leaveProvider.applyLeave(
-        leaveType: 'short',
-        startDate: DateTime.now(),
-        reason: 'Short leave taken during work hours',
-        totalDays: 1,
-      );
-
-      if (success) {
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Session ended and short leave applied successfully!',
-            ),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        await _loadData();
-        await authProvider.refreshUserData();
-      } else {
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(
-            content: Text('Failed to apply leave'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
-  }
-  void _showHalfDaySelectionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Half Day Type'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text('First Half'),
-              subtitle: const Text('Morning (e.g., 9:00 AM - 1:00 PM)'),
-              leading: const Icon(Icons.wb_sunny_outlined),
-              onTap: () {
-                Navigator.pop(context);
-                _endSessionAndApplyHalfDay(explicitHalfDayType: 'first_half');
-              },
-            ),
-            ListTile(
-              title: const Text('Second Half'),
-              subtitle: const Text('Afternoon (e.g., 2:00 PM - 6:00 PM)'),
-              leading: const Icon(Icons.wb_twilight),
-              onTap: () {
-                Navigator.pop(context);
-                _endSessionAndApplyHalfDay(explicitHalfDayType: 'second_half');
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _endSessionAndApplyHalfDay({String? explicitHalfDayType}) async {
-    final timeLogProvider = context.read<TimeLogProvider>();
-    final leaveProvider = context.read<LeaveProvider>();
-    final authProvider = context.read<AuthProvider>();
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final hasActiveSession = timeLogProvider.activeSession != null;
-
-    // Check conflict with manual validator first (in case Short Leave exists)
-    final conflictError = _checkLeaveConflict(DateTime.now(), 'half_day');
-    if (conflictError != null) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(conflictError),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
-    
-    // Check if there's already a half-day leave for today
-    final today = DateTime.now();
-    final todayDate = DateTime(today.year, today.month, today.day);
-    bool hasHalfDayToday = false;
-
-    for (final leave in leaveProvider.myLeaves) {
-      if (leave.status == 'rejected') continue;
-
-      final startDate = DateTime(
-        leave.startDate.year,
-        leave.startDate.month,
-        leave.startDate.day,
-      );
-      final endDate = leave.endDate != null
-          ? DateTime(
-              leave.endDate!.year,
-              leave.endDate!.month,
-              leave.endDate!.day,
-            )
-          : startDate;
-
-      // Check if today falls within the leave period
-      if (todayDate.isAtSameMomentAs(startDate) ||
-          todayDate.isAtSameMomentAs(endDate) ||
-          (todayDate.isAfter(startDate) && todayDate.isBefore(endDate))) {
-        if (leave.leaveType == 'half_day') {
-          hasHalfDayToday = true;
-          break;
-        }
-      }
-    }
-
-    // If already has a half-day leave, show error
-    if (hasHalfDayToday) {
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Text('You already have a half-day leave for today!'),
-          backgroundColor: AppColors.error,
-          duration: Duration(seconds: 3),
-        ),
-      );
-      return;
-    }
-
-    final halfDayType = explicitHalfDayType ?? (hasActiveSession ? 'second_half' : 'first_half');
-    final reason = (halfDayType == 'second_half')
-        ? 'Second half leave - ending work early'
-        : 'First half leave - arriving late or taking morning off';
-
-    // Apply half-day leave first
+    // Apply short leave directly (backend handles logic)
     final success = await leaveProvider.applyLeave(
-      leaveType: 'half_day',
+      leaveType: 'short',
       startDate: DateTime.now(),
-      reason: reason,
+      reason: 'Short leave taken during work hours',
       totalDays: 1,
-      halfDayType: halfDayType,
     );
 
     if (success) {
-      // If leave applied successfully, handle session
-      // End session only if it's second half leave (leaving early)
-      if (hasActiveSession && halfDayType == 'second_half') {
-        await timeLogProvider.endSession(endReason: 'half_day', customReason: 'second half');
-      }
-
+      // ONLY end session if leave application succeeds
+      await timeLogProvider.endSession(endReason: 'short_leave');
+      
       scaffoldMessenger.showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(
-            halfDayType == 'second_half'
-                ? 'Session ended and second half leave applied!'
-                : 'First half leave applied successfully! You can continue your session.',
+            'Session ended and short leave applied successfully!',
           ),
           backgroundColor: AppColors.success,
         ),
@@ -1575,494 +1396,82 @@ class _StaffDashboardState extends State<StaffDashboard> {
     }
   }
 
-  void _showApplyLeaveDialog() {
-    final timeLogProvider = context.read<TimeLogProvider>();
-    final hasActiveSession = timeLogProvider.activeSession != null;
-
+  void _showDutyTypeSelectionDialog() {
+    final dutyTypeProvider = context.read<DutyTypeProvider>();
+    // Ensure we have latest data from storage
+    dutyTypeProvider.loadFromCache(); 
+    // Actually provider loads on main. Be safe and just use what's there or trigger load if empty.
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Apply Leave'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Select leave type:'),
-            const SizedBox(height: 16),
-            ListTile(
-              title: const Text('Half Day Leave'),
-              subtitle: Text(
-                hasActiveSession
-                    ? 'Will apply for Second Half (afternoon)'
-                    : 'Will apply for First Half (morning)',
-                style: TextStyle(
-                  color: hasActiveSession ? AppColors.warning : AppColors.info,
-                  fontSize: 12,
-                ),
-              ),
-              leading: Icon(
-                Icons.schedule,
-                color: hasActiveSession ? AppColors.warning : AppColors.info,
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                _showHalfDayLeaveForm(hasActiveSession);
-              },
-            ),
-            ListTile(
-              title: const Text('Full Day Leave'),
-              leading: const Icon(Icons.event_available),
-              onTap: () {
-                Navigator.pop(context);
-                _showFullDayLeaveForm();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+        title: const Text('Select Duty Type'),
+        content: Consumer<DutyTypeProvider>(
+          builder: (context, DutyTypeProvider provider, _) {
+            if (provider.isLoading) {
+              return const SizedBox(
+                height: 100,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            
+            if (provider.dutyTypes.isEmpty) {
+               // Try fetching if empty
+               provider.fetchAndCacheDutyTypes();
+               return const SizedBox(
+                 height: 100,
+                 child: Center(child: CircularProgressIndicator()),
+               );
+            }
 
-  void _showHalfDayLeaveForm(bool hasActiveSession) {
-    final TextEditingController reasonController = TextEditingController();
-    final halfDayType = hasActiveSession ? 'second_half' : 'first_half';
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          hasActiveSession ? 'Second Half Leave' : 'First Half Leave',
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: (hasActiveSession ? AppColors.warning : AppColors.info)
-                      .withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: hasActiveSession
-                        ? AppColors.warning
-                        : AppColors.info,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: hasActiveSession
-                          ? AppColors.warning
-                          : AppColors.info,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        hasActiveSession
-                            ? 'Applying for second half (afternoon) because you have an active session'
-                            : 'Applying for first half (morning) - no active session detected',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: hasActiveSession
-                              ? AppColors.warning
-                              : AppColors.info,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+            return SizedBox(
+              width: double.maxFinite,
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: provider.dutyTypes.length,
+                itemBuilder: (context, index) {
+                  final type = provider.dutyTypes[index];
+                  return ListTile(
+                    title: Text(type.name),
+                    subtitle: type.type != null ? Text(type.type!) : null,
+                    leading: const Icon(Icons.work),
+                    onTap: () async {
+                      Navigator.pop(context); // Close dialog
+                      await _startSession(type.id);
+                    },
+                  );
+                },
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Date: ${DateFormat('MMM d, y').format(DateTime.now())}',
-                style: const TextStyle(fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: reasonController,
-                decoration: const InputDecoration(
-                  labelText: 'Reason',
-                  hintText: 'Enter reason for half-day leave...',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-                autofocus: true,
-              ),
-            ],
-          ),
+            );
+          },
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              final reason = reasonController.text.trim();
-              if (reason.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter a reason'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-                return;
-              }
-
-
-              // Check for conflicts
-              final conflictError = _checkLeaveConflict(DateTime.now(), 'half_day');
-              if (conflictError != null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(conflictError),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-                return;
-              }
-
-              final leaveProvider = context.read<LeaveProvider>();
-              final authProvider = context.read<AuthProvider>();
-              final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-              Navigator.pop(context);
-
-              final success = await leaveProvider.applyLeave(
-                leaveType: 'half_day',
-                startDate: DateTime.now(),
-                reason: reason,
-                totalDays: 1,
-                halfDayType: halfDayType,
-              );
-
-              if (success) {
-                scaffoldMessenger.showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Half-day leave applied for ${hasActiveSession ? "second half (afternoon)" : "first half (morning)"}',
-                    ),
-                    backgroundColor: AppColors.success,
-                  ),
-                );
-                await _loadData();
-                // Refresh user data to update leave balance
-                await authProvider.refreshUserData();
-              }
-            },
-            child: const Text('Submit'),
-          ),
         ],
       ),
     );
   }
 
-  void _showFullDayLeaveForm() {
-    final TextEditingController reasonController = TextEditingController();
-    DateTime startDate = DateTime.now();
-    DateTime endDate = DateTime.now();
-    String leaveType = 'casual'; // casual or short
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Full Day Leave'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Leave Type Selection
-                const Text(
-                  'Leave Type',
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  value: leaveType,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'casual',
-                      child: Text('Casual Leave'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'short',
-                      child: Text('Short Leave'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        leaveType = value;
-                      });
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Start Date
-                const Text(
-                  'Start Date',
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 8),
-                InkWell(
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: startDate,
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                    );
-                    if (picked != null) {
-                      // Check for conflicts if start date changes and is same day
-                      if (leaveType == 'short' || leaveType == 'half_day') {
-                         final conflictError = _checkLeaveConflict(picked, leaveType);
-                         if (conflictError != null) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(conflictError),
-                                  backgroundColor: AppColors.error,
-                                ),
-                              );
-                            }
-                            // Don't set state if conflict? Or just warn? Warn is better but blocking submit is key.
-                            // Let's allow setting state but block submit.
-                         }
-                      }
-                      setState(() {
-                        startDate = picked;
-                        if (endDate.isBefore(startDate)) {
-                          endDate = startDate;
-                        }
-                      });
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.calendar_today, size: 20),
-                        const SizedBox(width: 8),
-                        Text(DateFormat('MMM d, y').format(startDate)),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // End Date
-                const Text(
-                  'End Date',
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 8),
-                InkWell(
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: endDate,
-                      firstDate: startDate,
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                    );
-                    if (picked != null) {
-                      setState(() {
-                        endDate = picked;
-                      });
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.calendar_today, size: 20),
-                        const SizedBox(width: 8),
-                        Text(DateFormat('MMM d, y').format(endDate)),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Total Days Display
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.info.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.info),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.info_outline,
-                        color: AppColors.info,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Total Days: ${endDate.difference(startDate).inDays + 1}',
-                        style: const TextStyle(
-                          color: AppColors.info,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Reason
-                TextField(
-                  controller: reasonController,
-                  decoration: const InputDecoration(
-                    labelText: 'Reason',
-                    hintText: 'Enter reason for leave...',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                  autofocus: true,
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final reason = reasonController.text.trim();
-                if (reason.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please enter a reason'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
-                  return;
-                }
-
-                // Check for conflicts
-                final conflictError = _checkLeaveConflict(startDate, leaveType);
-                if (conflictError != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(conflictError),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
-                  return;
-                }
-
-                final totalDays = endDate.difference(startDate).inDays + 1;
-                final leaveProvider = context.read<LeaveProvider>();
-                final authProvider = context.read<AuthProvider>();
-                final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-                Navigator.pop(context);
-
-                final success = await leaveProvider.applyLeave(
-                  leaveType: leaveType,
-                  startDate: startDate,
-                  endDate: endDate,
-                  reason: reason,
-                  totalDays: totalDays,
-                );
-
-                if (success) {
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        '$totalDays day${totalDays > 1 ? 's' : ''} ${leaveType == 'casual'
-                            ? 'Casual'
-                            : leaveType == 'short'
-                            ? 'Short'
-                            : 'Leave'} leave applied successfully',
-                      ),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
-                  // Refresh data to update leave balance
-                  await _loadData();
-                  await authProvider.refreshUserData();
-                } else {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('Failed to apply leave. Please try again.'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
-                }
-              },
-              child: const Text('Submit'),
-            ),
-          ],
+  Future<void> _startSession(int dutyTypeId) async {
+    final timeLogProvider = context.read<TimeLogProvider>();
+    final success = await timeLogProvider.startSession(dutyTypeId: dutyTypeId);
+    
+    if (mounted && success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Session started!'),
+          backgroundColor: AppColors.success,
         ),
-      ),
-    );
-  }
-
-  // Check for leave conflicts
-  // Returns an error message if conflict exists, null otherwise
-  String? _checkLeaveConflict(DateTime date, String newLeaveType) {
-    if (newLeaveType != 'short' && newLeaveType != 'half_day') return null;
-
-    final leaveProvider = context.read<LeaveProvider>();
-    final targetDate = DateTime(date.year, date.month, date.day);
-
-    for (final leave in leaveProvider.myLeaves) {
-      if (leave.status == 'rejected' || leave.status == 'cancelled') continue;
-
-      final startDate = DateTime(
-        leave.startDate.year,
-        leave.startDate.month,
-        leave.startDate.day,
       );
-      final endDate = leave.endDate != null
-          ? DateTime(
-              leave.endDate!.year,
-              leave.endDate!.month,
-              leave.endDate!.day,
-            )
-          : startDate;
-
-      // Check if target date falls within the leave period
-      if (targetDate.isAtSameMomentAs(startDate) ||
-          targetDate.isAtSameMomentAs(endDate) ||
-          (targetDate.isAfter(startDate) && targetDate.isBefore(endDate))) {
-        
-        if (newLeaveType == 'half_day' && leave.leaveType == 'short') {
-          return 'Cannot apply for Half Day leave as you already have a Short leave for this date.';
-        }
-        if (newLeaveType == 'short' && leave.leaveType == 'half_day') {
-          return 'Cannot apply for Short leave as you already have a Half Day leave for this date.';
-        }
-      }
+      await _loadData();
     }
-    return null;
   }
+
+
+
 
   Color _getLeaveStatusColor(String status) {
     switch (status.toLowerCase()) {

@@ -221,7 +221,13 @@ class _HRDashboardState extends State<HRDashboard> {
               ),
             ),
             onSelected: (value) async {
-              if (value == 'settings') {
+              if (value == 'staff') {
+                // Navigate to staff management
+                context.push('/hr/staff');
+              } else if (value == 'attendance') {
+                // Navigate to today's attendance
+                context.push('/hr/today-attendance');
+              } else if (value == 'settings') {
                 // Navigate to settings
               } else if (value == 'logout') {
                 await authProvider.logout();
@@ -242,6 +248,26 @@ class _HRDashboardState extends State<HRDashboard> {
                 ),
               ),
               const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'staff',
+                child: Row(
+                  children: [
+                    Icon(Icons.people_outline),
+                    SizedBox(width: 12),
+                    Text('Staff'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'attendance',
+                child: Row(
+                  children: [
+                    Icon(Icons.event_available),
+                    SizedBox(width: 12),
+                    Text('Attendance'),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                 value: 'settings',
                 child: Row(
@@ -965,46 +991,83 @@ class _HRDashboardState extends State<HRDashboard> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Today\'s Attendance',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Today\'s Attendance',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                if (todayLogs.isNotEmpty)
+                  TextButton(
+                    onPressed: () {
+                      context.push('/hr/today-attendance');
+                    },
+                    child: const Text('View All'),
+                  ),
+              ],
             ),
             const SizedBox(height: 12),
             if (provider.isLoading)
               const Center(child: CircularProgressIndicator())
             else if (todayLogs.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Center(
-                  child: Text(
-                    'No attendance records yet',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 14,
+              InkWell(
+                onTap: () {
+                  context.push('/hr/today-attendance');
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          'No attendance records yet',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Tap to view details',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               )
             else
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: todayLogs.length,
-                  separatorBuilder: (_, __) =>
-                      Divider(height: 1, color: AppColors.border),
-                  itemBuilder: (context, index) {
-                    final log = todayLogs[index];
+              InkWell(
+                onTap: () {
+                  context.push('/hr/today-attendance');
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    children: [
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: todayLogs.length,
+                        separatorBuilder: (_, __) =>
+                            Divider(height: 1, color: AppColors.border),
+                        itemBuilder: (context, index) {
+                          final log = todayLogs[index];
                     final isActive = log.endTime == null;
                     final duration = log.endTime != null
                         ? log.endTime!.difference(log.startTime!)
@@ -1124,6 +1187,22 @@ class _HRDashboardState extends State<HRDashboard> {
                       ),
                     );
                   },
+                ),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          'Tap to view all attendance',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
           ],

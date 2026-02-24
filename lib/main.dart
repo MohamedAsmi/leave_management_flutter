@@ -13,6 +13,7 @@ import 'package:leave_management/providers/auth_provider.dart';
 import 'package:leave_management/providers/leave_provider.dart';
 import 'package:leave_management/providers/time_log_provider.dart';
 import 'package:leave_management/providers/notification_provider.dart';
+import 'package:leave_management/providers/user_provider.dart';
 import 'package:leave_management/routes/app_router.dart';
 import 'package:leave_management/data/services/duty_type_service.dart';
 import 'package:leave_management/data/models/duty_type_model.dart';
@@ -66,6 +67,7 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => NotificationProvider(notificationService),
         ),
+        ChangeNotifierProvider(create: (_) => UserProvider(userService)),
         ChangeNotifierProvider(
           create: (_) {
             final provider = DutyTypeProvider(dutyTypeService);

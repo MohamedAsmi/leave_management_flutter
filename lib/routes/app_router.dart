@@ -13,6 +13,9 @@ import 'package:leave_management/providers/auth_provider.dart';
 
 import 'package:leave_management/presentation/screens/hr/employee_list_screen.dart';
 import 'package:leave_management/presentation/screens/hr/user_attendance_detail_screen.dart';
+import 'package:leave_management/presentation/screens/hr/staff_management_screen.dart';
+import 'package:leave_management/presentation/screens/hr/add_staff_screen.dart';
+import 'package:leave_management/presentation/screens/hr/today_attendance_screen.dart';
 import 'package:leave_management/data/models/user_model.dart';
 
 class AppRouter {
@@ -98,6 +101,21 @@ class AppRouter {
           final user = state.extra as UserModel;
           return UserAttendanceDetailScreen(user: user);
         },
+      ),
+
+      GoRoute(
+        path: '/hr/staff',
+        builder: (context, state) => const StaffManagementScreen(),
+      ),
+
+      GoRoute(
+        path: '/hr/staff/add',
+        builder: (context, state) => const AddStaffScreen(),
+      ),
+
+      GoRoute(
+        path: '/hr/today-attendance',
+        builder: (context, state) => const TodayAttendanceScreen(),
       ),
 
       GoRoute(

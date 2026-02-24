@@ -651,7 +651,7 @@ class _HRDashboardState extends State<HRDashboard> {
               },
             ),
             _buildActionCard(
-              'Attendance',
+              'Attendance Report',
               Icons.fact_check,
               AppColors.info,
               () {

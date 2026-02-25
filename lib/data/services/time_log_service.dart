@@ -42,6 +42,24 @@ class TimeLogService {
     return TimeLogModel.fromJson(response.data['time_log']);
   }
 
+  // Update Time Log (Admin/HR)
+  Future<TimeLogModel> updateTimeLog(int timeLogId, Map<String, dynamic> data) async {
+    final response = await _apiClient.put(
+      '/time-logs/$timeLogId',
+      data: data,
+    );
+    return TimeLogModel.fromJson(response.data['time_log']);
+  }
+
+  // Create Time Log (Admin/HR)
+  Future<TimeLogModel> createTimeLogHr(Map<String, dynamic> data) async {
+    final response = await _apiClient.post(
+      '/time-logs/hr-create',
+      data: data,
+    );
+    return TimeLogModel.fromJson(response.data['time_log']);
+  }
+
   // Get Active Session
   Future<TimeLogModel?> getActiveSession() async {
     try {

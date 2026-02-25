@@ -16,6 +16,8 @@ import 'package:leave_management/presentation/screens/hr/user_attendance_detail_
 import 'package:leave_management/presentation/screens/hr/staff_management_screen.dart';
 import 'package:leave_management/presentation/screens/hr/add_staff_screen.dart';
 import 'package:leave_management/presentation/screens/hr/today_attendance_screen.dart';
+import 'package:leave_management/presentation/screens/hr/employee_list_screen_for_timelog.dart';
+import 'package:leave_management/presentation/screens/hr/hr_time_log_screen.dart';
 import 'package:leave_management/data/models/user_model.dart';
 
 class AppRouter {
@@ -93,6 +95,19 @@ class AppRouter {
       GoRoute(
         path: '/hr/attendance',
         builder: (context, state) => const EmployeeListScreen(),
+      ),
+
+      GoRoute(
+        path: '/hr/EmployeeListScreenForTimeLog',
+        builder: (context, state) => const EmployeeListScreenForTimelog(),
+      ),
+
+      GoRoute(
+        path: '/hr/staff-time-logs',
+        builder: (context, state) {
+          final user = state.extra as UserModel;
+          return HrTimeLogScreen(user: user);
+        },
       ),
 
       GoRoute(

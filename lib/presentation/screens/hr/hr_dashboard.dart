@@ -692,6 +692,14 @@ class _HRDashboardState extends State<HRDashboard> {
                 // Navigate to reports
               },
             ),
+            _buildActionCard(
+              'Edit Staff Time Logs',
+              Icons.edit_calendar,
+              const Color(0xFF8B4513), // Brown color for edit log
+              () {
+                context.push('/hr/EmployeeListScreenForTimeLog');
+              },
+            ),
           ],
         ),
       ],

@@ -9,11 +9,13 @@ import 'package:leave_management/data/services/time_log_service.dart';
 import 'package:leave_management/data/services/notification_service.dart';
 import 'package:leave_management/data/services/storage_service.dart';
 import 'package:leave_management/data/services/user_service.dart';
+import 'package:leave_management/data/services/project_service.dart';
 import 'package:leave_management/providers/auth_provider.dart';
 import 'package:leave_management/providers/leave_provider.dart';
 import 'package:leave_management/providers/time_log_provider.dart';
 import 'package:leave_management/providers/notification_provider.dart';
 import 'package:leave_management/providers/user_provider.dart';
+import 'package:leave_management/providers/project_provider.dart';
 import 'package:leave_management/routes/app_router.dart';
 import 'package:leave_management/data/services/duty_type_service.dart';
 import 'package:leave_management/data/models/duty_type_model.dart';
@@ -39,6 +41,7 @@ void main() async {
   final notificationService = NotificationService(apiClient);
   final userService = UserService(apiClient);
   final dutyTypeService = DutyTypeService(apiClient);
+  final projectService = ProjectService(apiClient);
 
   runApp(
     MultiProvider(
@@ -55,6 +58,7 @@ void main() async {
         Provider<TimeLogService>.value(value: timeLogService),
         Provider<NotificationService>.value(value: notificationService),
         Provider<UserService>.value(value: userService),
+        Provider<ProjectService>.value(value: projectService),
         Provider<DutyTypeService>.value(value: dutyTypeService),
 
         // Providers
@@ -75,6 +79,7 @@ void main() async {
             return provider;
           },
         ),
+        ChangeNotifierProvider(create: (_) => ProjectProvider(projectService)),
       ],
       child: const MyApp(),
     ),

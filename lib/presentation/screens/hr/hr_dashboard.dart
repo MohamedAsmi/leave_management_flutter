@@ -689,7 +689,15 @@ class _HRDashboardState extends State<HRDashboard> {
               Icons.bar_chart,
               AppColors.secondary,
               () {
-                // Navigate to reports
+                context.push('/hr/team-reports');
+              },
+            ),
+            _buildActionCard(
+              'User Report',
+              Icons.person_search,
+              AppColors.primary,
+              () {
+                context.push('/hr/user-weekly-report');
               },
             ),
             _buildActionCard(

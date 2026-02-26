@@ -7,6 +7,10 @@ class DateTimeUtils {
   }
   
   static String formatTime(DateTime time, {String? format}) {
+    // Check if time has no time component (midnight 00:00)
+    if (time.hour == 0 && time.minute == 0 && time.second == 0) {
+      return 'Not recorded';
+    }
     return DateFormat(format ?? AppConstants.displayTimeFormat).format(time.toLocal());
   }
   

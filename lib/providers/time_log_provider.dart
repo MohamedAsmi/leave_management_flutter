@@ -155,7 +155,13 @@ class TimeLogProvider with ChangeNotifier {
       _activeSession = await _timeLogService.getActiveSession();
       notifyListeners();
     } catch (e) {
-      _errorMessage = e.toString();
+      // Silently handle 404 - no active session is expected
+      if (e.toString().contains('404') || e.toString().contains('No active session found')) {
+        _activeSession = null;
+        _errorMessage = null;
+      } else {
+        _errorMessage = e.toString();
+      }
       notifyListeners();
     }
   }

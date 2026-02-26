@@ -18,7 +18,20 @@ import 'package:leave_management/presentation/screens/hr/add_staff_screen.dart';
 import 'package:leave_management/presentation/screens/hr/today_attendance_screen.dart';
 import 'package:leave_management/presentation/screens/hr/employee_list_screen_for_timelog.dart';
 import 'package:leave_management/presentation/screens/hr/hr_time_log_screen.dart';
+import 'package:leave_management/presentation/screens/hr/team_reports_screen.dart';
+import 'package:leave_management/presentation/screens/hr/user_weekly_report_screen.dart';
 import 'package:leave_management/data/models/user_model.dart';
+import 'package:leave_management/presentation/screens/staff/staff_projects_screen.dart';
+import 'package:leave_management/presentation/screens/staff/project_detail_screen.dart';
+import 'package:leave_management/presentation/screens/staff/my_tasks_screen.dart';
+import 'package:leave_management/presentation/screens/staff/task_detail_screen.dart';
+import 'package:leave_management/presentation/screens/common/notifications_screen.dart';
+
+// PM Screens
+import 'package:leave_management/presentation/screens/pm/pm_dashboard.dart';
+import 'package:leave_management/presentation/screens/pm/pm_projects_screen.dart';
+import 'package:leave_management/presentation/screens/pm/pm_project_form_screen.dart';
+import 'package:leave_management/presentation/screens/pm/pm_project_detail_screen.dart';
 
 class AppRouter {
   static GoRouter router(AuthProvider authProvider) => GoRouter(
@@ -48,6 +61,7 @@ class AppRouter {
         if (user != null) {
           if (user.isAdmin) return '/admin/dashboard';
           if (user.isHR) return '/hr/dashboard';
+          if (user.isProjectManager) return '/pm/dashboard';
           return '/staff/dashboard';
         }
       }
@@ -63,6 +77,7 @@ class AppRouter {
           if (user != null) {
             if (user.isAdmin) return '/admin/dashboard';
             if (user.isHR) return '/hr/dashboard';
+            if (user.isProjectManager) return '/pm/dashboard';
             return '/staff/dashboard';
           }
           return '/login';
@@ -134,6 +149,19 @@ class AppRouter {
       ),
 
       GoRoute(
+        path: '/hr/team-reports',
+        builder: (context, state) => const TeamReportsScreen(),
+      ),
+
+      GoRoute(
+        path: '/hr/user-weekly-report',
+        builder: (context, state) {
+          final user = state.extra as UserModel?;
+          return UserWeeklyReportScreen(initialUser: user);
+        },
+      ),
+
+      GoRoute(
         path: '/staff/dashboard',
         builder: (context, state) => const StaffDashboard(),
       ),
@@ -157,6 +185,72 @@ class AppRouter {
       GoRoute(
         path: '/apply-leave',
         builder: (context, state) => const ApplyLeaveScreen(),
+      ),
+
+      // Notifications (accessible by all roles)
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+
+      // Staff Projects Routes
+      GoRoute(
+        path: '/staff/projects',
+        builder: (context, state) => const StaffProjectsScreen(),
+      ),
+      
+      GoRoute(
+        path: '/staff/projects/:id',
+        builder: (context, state) {
+          final projectId = state.pathParameters['id']!;
+          return ProjectDetailScreen(projectId: projectId);
+        },
+      ),
+
+      // Staff Tasks Routes
+      GoRoute(
+        path: '/staff/tasks',
+        builder: (context, state) => const MyTasksScreen(),
+      ),
+
+      GoRoute(
+        path: '/staff/tasks/:id',
+        builder: (context, state) {
+          final taskId = state.pathParameters['id']!;
+          return TaskDetailScreen(taskId: taskId);
+        },
+      ),
+
+      // PM Routes
+      GoRoute(
+        path: '/pm/dashboard',
+        builder: (context, state) => const PMDashboard(),
+      ),
+
+      GoRoute(
+        path: '/pm/projects',
+        builder: (context, state) => const PMProjectsScreen(),
+      ),
+
+      GoRoute(
+        path: '/pm/projects/create',
+        builder: (context, state) => const PMProjectFormScreen(),
+      ),
+
+      GoRoute(
+        path: '/pm/projects/:id/edit',
+        builder: (context, state) {
+          final projectId = int.parse(state.pathParameters['id']!);
+          return PMProjectFormScreen(projectId: projectId);
+        },
+      ),
+
+      GoRoute(
+        path: '/pm/projects/:id',
+        builder: (context, state) {
+          final projectId = int.parse(state.pathParameters['id']!);
+          return PMProjectDetailScreen(projectId: projectId);
+        },
       ),
     ],
   );

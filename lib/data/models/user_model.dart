@@ -184,4 +184,5 @@ class UserModel extends HiveObject {
   bool get isAdmin => role == 'admin';
   bool get isHR => role == 'hr';
   bool get isStaff => role == 'staff';
+  bool get isProjectManager => role == 'project_manager';
 }

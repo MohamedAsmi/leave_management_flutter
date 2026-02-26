@@ -476,7 +476,9 @@ class _TodayAttendanceScreenState extends State<TodayAttendanceScreen> {
                   Expanded(
                     child: _buildTimeInfo(
                       'Start Time',
-                      DateFormat('h:mm a').format(log.startTime!),
+                      log.startTime != null && (log.startTime!.hour != 0 || log.startTime!.minute != 0)
+                          ? DateFormat('h:mm a').format(log.startTime!)
+                          : 'Not recorded',
                       Icons.login,
                       AppColors.success,
                     ),
@@ -490,7 +492,9 @@ class _TodayAttendanceScreenState extends State<TodayAttendanceScreen> {
                     child: _buildTimeInfo(
                       'End Time',
                       log.endTime != null
-                          ? DateFormat('h:mm a').format(log.endTime!)
+                          ? (log.endTime!.hour != 0 || log.endTime!.minute != 0)
+                              ? DateFormat('h:mm a').format(log.endTime!)
+                              : 'Not recorded'
                           : 'Ongoing',
                       Icons.logout,
                       log.endTime != null

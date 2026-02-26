@@ -43,100 +43,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
   }
 
   void _showNotifications() {
-    final notificationProvider = context.read<NotificationProvider>();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Notifications'),
-            TextButton(
-              onPressed: () async {
-                await notificationProvider.markAllAsRead();
-              },
-              child: const Text('Mark all read'),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 400,
-          child: Consumer<NotificationProvider>(
-            builder: (context, provider, _) {
-              if (provider.isLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (provider.notifications.isEmpty) {
-                return const Center(child: Text('No notifications'));
-              }
-
-              return ListView.builder(
-                itemCount: provider.notifications.length,
-                itemBuilder: (context, index) {
-                  final notification = provider.notifications[index];
-                  return Card(
-                    color: notification.isRead
-                        ? null
-                        : AppColors.info.withOpacity(0.1),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: notification.isRead
-                            ? Colors.grey
-                            : AppColors.primary,
-                        child: Icon(
-                          _getNotificationIcon(notification.type),
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                      title: Text(
-                        notification.title,
-                        style: TextStyle(
-                          fontWeight: notification.isRead
-                              ? FontWeight.normal
-                              : FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 4),
-                          Text(notification.message),
-                          const SizedBox(height: 4),
-                          Text(
-                            notification.createdAt != null
-                                ? DateTimeUtils.formatDateTime(
-                                    notification.createdAt!,
-                                    format: 'MMM d, y h:mm a',
-                                  )
-                                : '',
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                        ],
-                      ),
-                      onTap: () async {
-                        if (!notification.isRead) {
-                          await provider.markAsRead(notification.id);
-                        }
-                      },
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
+    context.push('/notifications');
   }
 
   IconData _getNotificationIcon(String type) {
@@ -930,6 +837,22 @@ class _StaffDashboardState extends State<StaffDashboard> {
               AppColors.secondary,
               () {
                 context.push('/my-leaves');
+              },
+            ),
+            _buildActionCard(
+              'My Projects',
+              Icons.folder,
+              Colors.purple,
+              () {
+                context.push('/staff/projects');
+              },
+            ),
+            _buildActionCard(
+              'My Tasks',
+              Icons.task_alt,
+              Colors.orange,
+              () {
+                context.push('/staff/tasks');
               },
             ),
             _buildActionCard(

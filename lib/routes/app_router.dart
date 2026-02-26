@@ -16,6 +16,8 @@ import 'package:leave_management/presentation/screens/hr/user_attendance_detail_
 import 'package:leave_management/presentation/screens/hr/staff_management_screen.dart';
 import 'package:leave_management/presentation/screens/hr/add_staff_screen.dart';
 import 'package:leave_management/presentation/screens/hr/today_attendance_screen.dart';
+import 'package:leave_management/presentation/screens/hr/team_reports_screen.dart';
+import 'package:leave_management/presentation/screens/hr/user_weekly_report_screen.dart';
 import 'package:leave_management/data/models/user_model.dart';
 import 'package:leave_management/presentation/screens/staff/staff_projects_screen.dart';
 import 'package:leave_management/presentation/screens/staff/project_detail_screen.dart';
@@ -129,6 +131,19 @@ class AppRouter {
       GoRoute(
         path: '/hr/today-attendance',
         builder: (context, state) => const TodayAttendanceScreen(),
+      ),
+
+      GoRoute(
+        path: '/hr/team-reports',
+        builder: (context, state) => const TeamReportsScreen(),
+      ),
+
+      GoRoute(
+        path: '/hr/user-weekly-report',
+        builder: (context, state) {
+          final user = state.extra as UserModel?;
+          return UserWeeklyReportScreen(initialUser: user);
+        },
       ),
 
       GoRoute(

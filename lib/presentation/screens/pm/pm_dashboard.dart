@@ -18,7 +18,8 @@ class PMDashboard extends StatefulWidget {
   State<PMDashboard> createState() => _PMDashboardState();
 }
 
-class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStateMixin {
+class _PMDashboardState extends State<PMDashboard>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -39,7 +40,7 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
     final notificationProvider = context.read<NotificationProvider>();
     final leaveProvider = context.read<LeaveProvider>();
     final timeLogProvider = context.read<TimeLogProvider>();
-    
+
     await Future.wait([
       projectProvider.fetchProjects(),
       projectProvider.fetchProjectStatistics(),
@@ -130,7 +131,97 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
     }
   }
 
-  void _pauseDuty(BuildContext context) async {
+  void _showPauseSessionDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('End Session'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Select reason for ending session:'),
+            const SizedBox(height: 16),
+            ListTile(
+              title: const Text('Lunch Break'),
+              leading: const Icon(Icons.restaurant),
+              onTap: () => _pauseDuty('lunch', dialogContext),
+            ),
+            ListTile(
+              title: const Text('Prayer Break'),
+              leading: const Icon(Icons.mosque),
+              onTap: () => _pauseDuty('prayer', dialogContext),
+            ),
+            ListTile(
+              title: const Text('Short Leave'),
+              leading: const Icon(Icons.schedule),
+              onTap: () async {
+                Navigator.pop(dialogContext);
+                await _pauseDutyAndApplyShortLeave();
+              },
+            ),
+            ListTile(
+              title: const Text('Other'),
+              leading: const Icon(Icons.more_horiz),
+              onTap: () {
+                Navigator.pop(dialogContext);
+                _showCustomPauseReasonDialog();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCustomPauseReasonDialog() {
+    final TextEditingController reasonController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Enter Reason'),
+        content: TextField(
+          controller: reasonController,
+          decoration: const InputDecoration(
+            labelText: 'Custom Reason',
+            hintText: 'Please specify your reason...',
+            border: OutlineInputBorder(),
+          ),
+          maxLines: 3,
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final customReason = reasonController.text.trim();
+              if (customReason.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter a reason'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              _pauseDuty('other', dialogContext, customReason: customReason);
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pauseDuty(
+    String reason,
+    BuildContext dialogContext, {
+    String? customReason,
+  }) async {
+    Navigator.pop(dialogContext);
     final timeLogProvider = context.read<TimeLogProvider>();
 
     showDialog(
@@ -140,21 +231,66 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
     );
 
     final success = await timeLogProvider.endSession(
-      endReason: 'lunch',
-      customReason: null,
+      endReason: reason,
+      customReason: customReason,
     );
 
-    if (context.mounted) {
-      Navigator.of(context).pop();
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Session paused for break'),
-            backgroundColor: AppColors.warning,
+    if (!mounted) return;
+
+    Navigator.of(context).pop();
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Session paused successfully'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      await _loadData();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            timeLogProvider.errorMessage ?? 'Failed to pause session',
           ),
-        );
-        await _loadData();
-      }
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _pauseDutyAndApplyShortLeave() async {
+    final timeLogProvider = context.read<TimeLogProvider>();
+    final leaveProvider = context.read<LeaveProvider>();
+    final authProvider = context.read<AuthProvider>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    final success = await leaveProvider.applyLeave(
+      leaveType: 'short',
+      startDate: DateTime.now(),
+      reason: 'Short leave taken during work hours',
+      totalDays: 1,
+    );
+
+    if (success) {
+      await timeLogProvider.endSession(endReason: 'short_leave');
+
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Text('Session ended and short leave applied successfully!'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      await _loadData();
+      await authProvider.refreshUserData();
+    } else {
+      final errorMessage =
+          leaveProvider.errorMessage ?? 'Failed to apply leave';
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(errorMessage.replaceAll('Exception: ', '')),
+          backgroundColor: AppColors.error,
+        ),
+      );
     }
   }
 
@@ -198,7 +334,9 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('End Duty'),
-        content: const Text('Are you sure you want to end your duty for today?'),
+        content: const Text(
+          'Are you sure you want to end your duty for today?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -301,10 +439,7 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
           PopupMenuButton<String>(
             icon: CircleAvatar(
               backgroundColor: AppColors.primary,
@@ -350,10 +485,7 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildOverviewTab(),
-          _buildProjectsTab(),
-        ],
+        children: [_buildOverviewTab(), _buildProjectsTab()],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -534,7 +666,12 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -678,8 +815,12 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
                 Row(
                   children: [
                     Icon(
-                      hasActiveSession ? Icons.access_time : Icons.access_time_outlined,
-                      color: hasActiveSession ? AppColors.success : AppColors.textSecondary,
+                      hasActiveSession
+                          ? Icons.access_time
+                          : Icons.access_time_outlined,
+                      color: hasActiveSession
+                          ? AppColors.success
+                          : AppColors.textSecondary,
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -708,7 +849,9 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
                         ),
                       ),
                       Text(
-                        DateTimeUtils.durationToString(todayHours ?? Duration.zero),
+                        DateTimeUtils.durationToString(
+                          todayHours ?? Duration.zero,
+                        ),
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -725,7 +868,9 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: !hasActiveSession && !timeLogProvider.hasDutyStartedToday
+                        onPressed:
+                            !hasActiveSession &&
+                                !timeLogProvider.hasDutyStartedToday
                             ? () => _startDuty(context)
                             : null,
                         icon: const Icon(Icons.play_arrow, size: 18),
@@ -740,18 +885,24 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: hasActiveSession
-                            ? () => _pauseDuty(context)
-                            : timeLogProvider.hasDutyStartedToday && !hasActiveSession
-                                ? () => _resumeDuty(context)
-                                : null,
-                        icon: Icon(hasActiveSession ? Icons.pause : Icons.play_arrow, size: 18),
+                            ? () => _showPauseSessionDialog()
+                            : timeLogProvider.hasDutyStartedToday &&
+                                  !hasActiveSession
+                            ? () => _resumeDuty(context)
+                            : null,
+                        icon: Icon(
+                          hasActiveSession ? Icons.pause : Icons.play_arrow,
+                          size: 18,
+                        ),
                         label: Text(hasActiveSession ? 'Pause' : 'Resume'),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: timeLogProvider.hasDutyStartedToday && !timeLogProvider.isDutyCompletedToday
+                        onPressed:
+                            timeLogProvider.hasDutyStartedToday &&
+                                !timeLogProvider.isDutyCompletedToday
                             ? () => _endDuty(context)
                             : null,
                         icon: const Icon(Icons.stop, size: 18),
@@ -807,7 +958,12 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildBalanceCard(String label, double balance, IconData icon, Color color) {
+  Widget _buildBalanceCard(
+    String label,
+    double balance,
+    IconData icon,
+    Color color,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -844,10 +1000,7 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'My Tasks',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
+                Text('My Tasks', style: Theme.of(context).textTheme.titleLarge),
                 TextButton(
                   onPressed: () => context.push('/pm/tasks'),
                   child: const Text('View All'),
@@ -876,29 +1029,36 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
                 ),
               )
             else
-              ...tasks.map((task) => Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: _getTaskPriorityColor(task.priority).withOpacity(0.2),
-                        child: Icon(
-                          Icons.task,
-                          color: _getTaskPriorityColor(task.priority),
-                          size: 20,
-                        ),
+              ...tasks.map(
+                (task) => Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: _getTaskPriorityColor(
+                        task.priority,
+                      ).withOpacity(0.2),
+                      child: Icon(
+                        Icons.task,
+                        color: _getTaskPriorityColor(task.priority),
+                        size: 20,
                       ),
-                      title: Text(
-                        task.title,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                      ),
-                      subtitle: Text(
-                        task.projectName ?? 'No project',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                      trailing: _buildTaskStatusChip(task.status),
-                      onTap: () => context.push('/staff/tasks/${task.id}'),
                     ),
-                  )),
+                    title: Text(
+                      task.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    subtitle: Text(
+                      task.projectName ?? 'No project',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                    trailing: _buildTaskStatusChip(task.status),
+                    onTap: () => context.push('/staff/tasks/${task.id}'),
+                  ),
+                ),
+              ),
           ],
         );
       },
@@ -913,10 +1073,7 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'All Projects',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text('All Projects', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
             if (provider.isLoading)
               const Center(child: CircularProgressIndicator())
@@ -927,7 +1084,11 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
                   child: Center(
                     child: Column(
                       children: [
-                        Icon(Icons.folder_open, size: 48, color: Colors.grey[400]),
+                        Icon(
+                          Icons.folder_open,
+                          size: 48,
+                          color: Colors.grey[400],
+                        ),
                         const SizedBox(height: 8),
                         Text(
                           'No projects yet',
@@ -945,46 +1106,53 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
                 ),
               )
             else
-              ...projects.map((project) => Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: _getStatusColor(project.status).withOpacity(0.2),
-                        child: Icon(
-                          Icons.folder,
-                          color: _getStatusColor(project.status),
-                        ),
+              ...projects.map(
+                (project) => Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: _getStatusColor(
+                        project.status,
+                      ).withOpacity(0.2),
+                      child: Icon(
+                        Icons.folder,
+                        color: _getStatusColor(project.status),
                       ),
-                      title: Text(
-                        project.name,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 4),
-                          Text(
-                            '${project.statusLabel} • ${project.progress}% complete',
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                          ),
-                          const SizedBox(height: 4),
-                          LinearProgressIndicator(
-                            value: project.progress / 100,
-                            backgroundColor: Colors.grey[200],
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              _getStatusColor(project.status),
-                            ),
-                          ),
-                        ],
-                      ),
-                      trailing: Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: Colors.grey[400],
-                      ),
-                      onTap: () => context.push('/pm/projects/${project.id}'),
                     ),
-                  )),
+                    title: Text(
+                      project.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 4),
+                        Text(
+                          '${project.statusLabel} • ${project.progress}% complete',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        LinearProgressIndicator(
+                          value: project.progress / 100,
+                          backgroundColor: Colors.grey[200],
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            _getStatusColor(project.status),
+                          ),
+                        ),
+                      ],
+                    ),
+                    trailing: Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: Colors.grey[400],
+                    ),
+                    onTap: () => context.push('/pm/projects/${project.id}'),
+                  ),
+                ),
+              ),
           ],
         );
       },
@@ -1050,4 +1218,3 @@ class _PMDashboardState extends State<PMDashboard> with SingleTickerProviderStat
     );
   }
 }
-

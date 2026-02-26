@@ -15,7 +15,6 @@ class LeaveService {
     required String reason,
     double? totalDays,
     String? leaveMode,
-    int? userId,
   }) async {
     final response = await _apiClient.post(
       '/leaves',
@@ -26,7 +25,6 @@ class LeaveService {
         'reason': reason,
         if (totalDays != null) 'total_days': totalDays,
         if (leaveMode != null) 'leave_mode': leaveMode,
-        if (userId != null) 'user_id': userId,
       },
     );
 

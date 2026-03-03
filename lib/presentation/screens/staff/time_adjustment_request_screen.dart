@@ -28,11 +28,44 @@ class _TimeAdjustmentRequestScreenState
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
+    final picked = await showModalBottomSheet<DateTime>(
       context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      builder: (BuildContext context) {
+        return Container(
+          height: 450,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Select date',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: CalendarDatePicker(
+                  initialDate: _selectedDate ?? DateTime.now(),
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime.now(),
+                  onDateChanged: (DateTime date) {
+                    Navigator.pop(context, date);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
@@ -42,21 +75,53 @@ class _TimeAdjustmentRequestScreenState
   Future<void> _pickStartTime() async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: _selectedStartTime ?? const TimeOfDay(hour: 9, minute: 0),
+      initialTime: _selectedStartTime ?? TimeOfDay.now(),
     );
     if (picked != null) {
       setState(() => _selectedStartTime = picked);
+      // Validate start time is before end time
+      _validateTimes();
     }
   }
 
   Future<void> _pickEndTime() async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: _selectedEndTime ?? const TimeOfDay(hour: 18, minute: 0),
+      initialTime: _selectedEndTime ?? TimeOfDay.now(),
     );
     if (picked != null) {
       setState(() => _selectedEndTime = picked);
+      // Validate end time is after start time
+      _validateTimes();
     }
+  }
+
+  void _validateTimes() {
+    if (_selectedStartTime != null && _selectedEndTime != null) {
+      final startMinutes = _selectedStartTime!.hour * 60 + _selectedStartTime!.minute;
+      final endMinutes = _selectedEndTime!.hour * 60 + _selectedEndTime!.minute;
+      
+      if (endMinutes <= startMinutes) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('End time must be after start time'),
+            backgroundColor: AppColors.error,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  bool _isTimeInFuture(DateTime date, TimeOfDay time) {
+    final dateTime = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    return dateTime.isAfter(DateTime.now());
   }
 
   String _formatTimeOfDay(TimeOfDay time) {
@@ -88,6 +153,43 @@ class _TimeAdjustmentRequestScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select at least a start time or end time'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    // Validate end time is after start time
+    if (_selectedStartTime != null && _selectedEndTime != null) {
+      final startMinutes = _selectedStartTime!.hour * 60 + _selectedStartTime!.minute;
+      final endMinutes = _selectedEndTime!.hour * 60 + _selectedEndTime!.minute;
+      
+      if (endMinutes <= startMinutes) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('End time must be after start time'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+    }
+
+    // Validate that times are not in the future
+    if (_selectedStartTime != null && _isTimeInFuture(_selectedDate!, _selectedStartTime!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Start time cannot be in the future'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedEndTime != null && _isTimeInFuture(_selectedDate!, _selectedEndTime!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('End time cannot be in the future'),
           backgroundColor: AppColors.error,
         ),
       );

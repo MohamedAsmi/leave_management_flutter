@@ -55,7 +55,14 @@ class _HRTimeTrackingScreenState extends State<HRTimeTrackingScreen> {
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
-          child: _buildPersonalTimeTracking(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildPersonalTimeTracking(),
+              const SizedBox(height: 20),
+              _buildLeaveBalanceCards(),
+            ],
+          ),
         ),
       ),
     );
@@ -847,6 +854,87 @@ class _HRTimeTrackingScreenState extends State<HRTimeTrackingScreen> {
             child: const Text('Submit'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLeaveBalanceCards() {
+    final authProvider = context.watch<AuthProvider>();
+    final user = authProvider.currentUser;
+
+    return Row(
+      children: [
+        Expanded(
+          child: _buildBalanceCard(
+            'Annual',
+            user?.annualLeaveBalance ?? 0,
+            Icons.calendar_month,
+            Colors.purple,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildBalanceCard(
+            'Medical',
+            user?.medicalLeaveBalance ?? 0,
+            Icons.medical_services,
+            Colors.redAccent,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildBalanceCard(
+            'Casual',
+            user?.casualLeaveBalance ?? 0,
+            Icons.beach_access,
+            AppColors.info,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildBalanceCard(
+            'Short',
+            user?.shortLeaveBalance ?? 0,
+            Icons.schedule,
+            AppColors.warning,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBalanceCard(
+    String title,
+    num count,
+    IconData icon,
+    Color color,
+  ) {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 8),
+            Text(
+              '$count',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 10),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }

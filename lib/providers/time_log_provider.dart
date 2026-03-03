@@ -29,14 +29,13 @@ class TimeLogProvider with ChangeNotifier {
     final today = DateTime.now();
     return _myTimeLogs.any((log) {
       final localDate = log.date.toLocal();
-      final isToday = localDate.year == today.year &&
+      final isToday =
+          localDate.year == today.year &&
           localDate.month == today.month &&
           localDate.day == today.day;
       return isToday &&
-          ((log.endReason == 'other' &&
-                  log.customReason == 'End of workday') ||
-              log.endReason == 'half_day' &&
-                  log.customReason == 'second half');
+          ((log.endReason == 'other' && log.customReason == 'End of workday') ||
+              log.endReason == 'half_day' && log.customReason == 'second half');
     });
   }
 
@@ -60,7 +59,9 @@ class TimeLogProvider with ChangeNotifier {
     _errorMessage = null;
 
     try {
-      _activeSession = await _timeLogService.startSession(dutyTypeId: dutyTypeId);
+      _activeSession = await _timeLogService.startSession(
+        dutyTypeId: dutyTypeId,
+      );
       _setLoading(false);
       notifyListeners();
       return true;
@@ -77,28 +78,37 @@ class TimeLogProvider with ChangeNotifier {
     required String endReason,
     String? customReason,
   }) async {
-    if (_activeSession == null) return false;
+    final targetLogId = _activeSession?.id ?? lastLogId;
+    if (targetLogId == null) return false;
 
     _setLoading(true);
     _errorMessage = null;
 
     try {
       final endedSession = await _timeLogService.endSession(
-        timeLogId: _activeSession!.id,
+        timeLogId: targetLogId,
         endReason: endReason,
         customReason: customReason,
       );
 
       _activeSession = null;
-      _myTimeLogs.insert(0, endedSession);
+
+      final index = _myTimeLogs.indexWhere((log) => log.id == endedSession.id);
+      if (index >= 0) {
+        _myTimeLogs[index] = endedSession;
+      } else {
+        _myTimeLogs.insert(0, endedSession);
+      }
+
       await fetchTodayWorkingHours();
-      
+
       _setLoading(false);
       notifyListeners();
       return true;
     } catch (e) {
       // If session is already ended on server (404), clear local session and return success
-      if (e.toString().contains('404') || e.toString().contains('No active session found')) {
+      if (e.toString().contains('404') ||
+          e.toString().contains('No active session found')) {
         _activeSession = null;
         _errorMessage = null;
         await fetchTodayWorkingHours();
@@ -106,7 +116,7 @@ class TimeLogProvider with ChangeNotifier {
         notifyListeners();
         return true;
       }
-      
+
       _errorMessage = e.toString();
       _setLoading(false);
       notifyListeners();
@@ -128,14 +138,14 @@ class TimeLogProvider with ChangeNotifier {
 
       // If not found locally, we could fetch it, but for now let's rely on what we have.
       // If we don't have it, we default to 1 (Office) to strictly avoid 500 errors.
-      
+
       int? dutyTypeId = logToResume?.dutyTypeId;
-      
+
       // Fallback for legacy logs or missing data
       dutyTypeId ??= 1;
 
       _activeSession = await _timeLogService.resumeSession(
-        timeLogId, 
+        timeLogId,
         dutyTypeId: dutyTypeId,
       );
       _setLoading(false);
@@ -156,7 +166,8 @@ class TimeLogProvider with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       // Silently handle 404 - no active session is expected
-      if (e.toString().contains('404') || e.toString().contains('No active session found')) {
+      if (e.toString().contains('404') ||
+          e.toString().contains('No active session found')) {
         _activeSession = null;
         _errorMessage = null;
       } else {
@@ -167,10 +178,7 @@ class TimeLogProvider with ChangeNotifier {
   }
 
   // Get My Time Logs
-  Future<void> fetchMyTimeLogs({
-    DateTime? startDate,
-    DateTime? endDate,
-  }) async {
+  Future<void> fetchMyTimeLogs({DateTime? startDate, DateTime? endDate}) async {
     _setLoading(true);
     _errorMessage = null;
 

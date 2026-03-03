@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:leave_management/data/models/time_log_session_model.dart';
 
 part 'time_log_model.g.dart';
 
@@ -43,6 +44,9 @@ class TimeLogModel extends HiveObject {
   @HiveField(12)
   final int? dutyTypeId;
 
+  @HiveField(13)
+  final List<TimeLogSessionModel> sessions;
+
   TimeLogModel({
     required this.id,
     required this.userId,
@@ -57,6 +61,7 @@ class TimeLogModel extends HiveObject {
     this.createdAt,
     this.updatedAt,
     this.dutyTypeId,
+    this.sessions = const [],
   });
 
   factory TimeLogModel.fromJson(Map<String, dynamic> json) {
@@ -86,6 +91,11 @@ class TimeLogModel extends HiveObject {
           ? DateTime.parse(json['updated_at'])
           : null,
       dutyTypeId: json['duty_type_id'],
+      sessions: json['sessions'] != null
+          ? (json['sessions'] as List)
+                .map((s) => TimeLogSessionModel.fromJson(s))
+                .toList()
+          : [],
     );
   }
 
@@ -104,6 +114,7 @@ class TimeLogModel extends HiveObject {
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
       'duty_type_id': dutyTypeId,
+      'sessions': sessions.map((s) => s.toJson()).toList(),
     };
   }
 
@@ -121,6 +132,7 @@ class TimeLogModel extends HiveObject {
     DateTime? createdAt,
     DateTime? updatedAt,
     int? dutyTypeId,
+    List<TimeLogSessionModel>? sessions,
   }) {
     return TimeLogModel(
       id: id ?? this.id,
@@ -136,6 +148,7 @@ class TimeLogModel extends HiveObject {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       dutyTypeId: dutyTypeId ?? this.dutyTypeId,
+      sessions: sessions ?? this.sessions,
     );
   }
 }

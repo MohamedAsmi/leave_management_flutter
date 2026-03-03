@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Primary Colors
-  static const Color primary = Color(0xFF6366F1);
-  static const Color primaryDark = Color(0xFF4F46E5);
-  static const Color primaryLight = Color(0xFF818CF8);
+  // Primary Colors - Purple (Imara branding)
+  static const Color primary = Color(0xFF7B1FA2);
+  static const Color primaryDark = Color(0xFF6A1B9A);
+  static const Color primaryLight = Color(0xFF9C27B0);
   
-  // Secondary Colors
-  static const Color secondary = Color(0xFF10B981);
-  static const Color secondaryDark = Color(0xFF059669);
-  static const Color secondaryLight = Color(0xFF34D399);
+  // Secondary Colors - Orange (Imara branding)
+  static const Color secondary = Color(0xFFFF9800);
+  static const Color secondaryDark = Color(0xFFF57C00);
+  static const Color secondaryLight = Color(0xFFFFB74D);
   
   // Background Colors
   static const Color background = Color(0xFFF9FAFB);

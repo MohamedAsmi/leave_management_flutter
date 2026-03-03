@@ -68,6 +68,10 @@ class _StaffDashboardState extends State<StaffDashboard> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Image.asset('assets/logo_icon.png'),
+        ),
         title: const Text('Dashboard'),
         actions: [
           // Notifications

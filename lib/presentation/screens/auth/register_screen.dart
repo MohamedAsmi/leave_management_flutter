@@ -106,10 +106,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Logo/Title
-                  const Icon(
-                    Icons.person_add,
-                    size: 80,
-                    color: AppColors.primary,
+                  Image.asset(
+                    'assets/m1.png',
+                    height: 80,
+                    width: 80,
                   ),
                   const SizedBox(height: 24),
                   Text(

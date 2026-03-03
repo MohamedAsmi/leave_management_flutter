@@ -17,7 +17,7 @@ class LeaveApprovalScreen extends StatefulWidget {
 class _LeaveApprovalScreenState extends State<LeaveApprovalScreen> {
   String _selectedLeaveType = 'All';
   String _selectedStatus = 'All';
-  DateTime? _selectedDate;
+  DateTime? _selectedDate = DateTime.now();
   
   final List<String> _leaveTypes = [
     'All',
@@ -62,18 +62,21 @@ class _LeaveApprovalScreenState extends State<LeaveApprovalScreen> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-    );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
+  final DateTime? picked = await showDatePicker(
+    context: context,
+    initialDate: DateTime.now(), // always default to today
+    firstDate: DateTime(2020),
+    lastDate: DateTime(2030),
+  );
+
+  if (picked != null && picked != _selectedDate) {
+    setState(() {
+      // convert to local time before storing
+      _selectedDate = picked.toLocal();
+    });
   }
+}
+
 
   void _clearDateFilter() {
     setState(() {
@@ -107,10 +110,10 @@ class _LeaveApprovalScreenState extends State<LeaveApprovalScreen> {
 
       // Filter by Date
       if (_selectedDate != null) {
-        final start = DateTime(leave.startDate.year, leave.startDate.month, leave.startDate.day);
-        final end = leave.endDate != null 
-            ? DateTime(leave.endDate!.year, leave.endDate!.month, leave.endDate!.day)
-            : start;
+        final startLocal = leave.startDate.toLocal();
+        final start = DateTime(startLocal.year, startLocal.month, startLocal.day);
+        final endLocal = leave.endDate?.toLocal() ?? startLocal;
+        final end = DateTime(endLocal.year, endLocal.month, endLocal.day);
         final selected = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day);
 
         return (selected.isAtSameMomentAs(start) || selected.isAfter(start)) && 
@@ -335,12 +338,15 @@ class _LeaveApprovalScreenState extends State<LeaveApprovalScreen> {
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          '${DateFormat('MMM d').format(leave.startDate)} ${leave.endDate != null && !leave.startDate.isAtSameMomentAs(leave.endDate!) ? '- ${DateFormat('MMM d').format(leave.endDate!)}' : ''}',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey[600],
+                                            '${DateFormat('MMM d, h:mm a').format(leave.startDate.toLocal())}'
+                                            '${leave.endDate != null && !leave.startDate.isAtSameMomentAs(leave.endDate!) 
+                                                ? ' - ${DateFormat('MMM d, h:mm a').format(leave.endDate!.toLocal())}' 
+                                                : ''}',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[600],
+                                            ),
                                           ),
-                                        ),
                                         const SizedBox(width: 16),
                                         Icon(
                                           Icons.timelapse,

@@ -16,6 +16,9 @@ import 'package:leave_management/providers/time_log_provider.dart';
 import 'package:leave_management/providers/notification_provider.dart';
 import 'package:leave_management/providers/user_provider.dart';
 import 'package:leave_management/providers/project_provider.dart';
+import 'package:leave_management/data/services/time_adjustment_service.dart';
+import 'package:leave_management/providers/time_adjustment_provider.dart';
+
 import 'package:leave_management/routes/app_router.dart';
 import 'package:leave_management/data/services/duty_type_service.dart';
 import 'package:leave_management/data/models/duty_type_model.dart';
@@ -42,6 +45,7 @@ void main() async {
   final userService = UserService(apiClient);
   final dutyTypeService = DutyTypeService(apiClient);
   final projectService = ProjectService(apiClient);
+  final timeAdjustmentService = TimeAdjustmentService(apiClient);
 
   runApp(
     MultiProvider(
@@ -60,6 +64,7 @@ void main() async {
         Provider<UserService>.value(value: userService),
         Provider<ProjectService>.value(value: projectService),
         Provider<DutyTypeService>.value(value: dutyTypeService),
+        Provider<TimeAdjustmentService>.value(value: timeAdjustmentService),
 
         // Providers
         ChangeNotifierProvider(
@@ -80,6 +85,9 @@ void main() async {
           },
         ),
         ChangeNotifierProvider(create: (_) => ProjectProvider(projectService)),
+        ChangeNotifierProvider(
+          create: (_) => TimeAdjustmentProvider(timeAdjustmentService),
+        ),
       ],
       child: const MyApp(),
     ),

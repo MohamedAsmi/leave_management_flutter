@@ -30,13 +30,14 @@ class TimeLogModelAdapter extends TypeAdapter<TimeLogModel> {
       createdAt: fields[10] as DateTime?,
       updatedAt: fields[11] as DateTime?,
       dutyTypeId: fields[12] as int?,
+      sessions: (fields[13] as List).cast<TimeLogSessionModel>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, TimeLogModel obj) {
     writer
-      ..writeByte(13)
+      ..writeByte(14)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -62,7 +63,9 @@ class TimeLogModelAdapter extends TypeAdapter<TimeLogModel> {
       ..writeByte(11)
       ..write(obj.updatedAt)
       ..writeByte(12)
-      ..write(obj.dutyTypeId);
+      ..write(obj.dutyTypeId)
+      ..writeByte(13)
+      ..write(obj.sessions);
   }
 
   @override

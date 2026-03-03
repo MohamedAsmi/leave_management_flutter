@@ -6,7 +6,6 @@ import 'package:leave_management/core/utils/date_time_utils.dart';
 import 'package:leave_management/providers/time_log_provider.dart';
 import 'package:leave_management/data/models/time_log_model.dart';
 
-
 class TimeLogScreen extends StatefulWidget {
   const TimeLogScreen({super.key});
 
@@ -17,7 +16,7 @@ class TimeLogScreen extends StatefulWidget {
 class _TimeLogScreenState extends State<TimeLogScreen> {
   late DateTime _selectedDate;
   final ScrollController _dateScrollController = ScrollController();
-  
+
   // Cache the last 14 days
   late final List<DateTime> _last14Days;
 
@@ -25,9 +24,9 @@ class _TimeLogScreenState extends State<TimeLogScreen> {
   void initState() {
     super.initState();
     _selectedDate = DateTime.now();
-    
+
     // Generate last 14 days list (reversed so today is first/last depending on design)
-    // Design: Horizontal list. Let's put today first or last? "Last 14 days". 
+    // Design: Horizontal list. Let's put today first or last? "Last 14 days".
     // Usually convenient to see today first.
     _last14Days = List.generate(14, (index) {
       return DateTime.now().subtract(Duration(days: index));
@@ -44,14 +43,22 @@ class _TimeLogScreenState extends State<TimeLogScreen> {
     // The provider's fetchMyTimeLogs replaces the list.
     // So we just fetch for the specific date range (start of day to end of day)
     // Actually the backend filters by date range.
-    
-    final startOfDay = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
-    final endOfDay = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, 23, 59, 59);
 
-    await provider.fetchMyTimeLogs(
-      startDate: startOfDay,
-      endDate: endOfDay,
+    final startOfDay = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
     );
+    final endOfDay = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      23,
+      59,
+      59,
+    );
+
+    await provider.fetchMyTimeLogs(startDate: startOfDay, endDate: endOfDay);
   }
 
   void _onDateSelected(DateTime date) {
@@ -90,9 +97,7 @@ class _TimeLogScreenState extends State<TimeLogScreen> {
         children: [
           _buildDateSelector(),
           const Divider(height: 1),
-          Expanded(
-            child: _buildLogsList(),
-          ),
+          Expanded(child: _buildLogsList()),
         ],
       ),
     );
@@ -111,7 +116,7 @@ class _TimeLogScreenState extends State<TimeLogScreen> {
         itemBuilder: (context, index) {
           final date = _last14Days[index];
           final isSelected = DateUtils.isSameDay(date, _selectedDate);
-          
+
           return GestureDetector(
             onTap: () => _onDateSelected(date),
             child: Container(
@@ -120,7 +125,9 @@ class _TimeLogScreenState extends State<TimeLogScreen> {
                 color: isSelected ? AppColors.primary : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : Colors.grey.withOpacity(0.3),
+                  color: isSelected
+                      ? AppColors.primary
+                      : Colors.grey.withOpacity(0.3),
                 ),
               ),
               child: Column(
@@ -129,7 +136,9 @@ class _TimeLogScreenState extends State<TimeLogScreen> {
                   Text(
                     DateFormat('E').format(date), // Mon, Tue
                     style: TextStyle(
-                      color: isSelected ? Colors.white : AppColors.textSecondary,
+                      color: isSelected
+                          ? Colors.white
+                          : AppColors.textSecondary,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -197,23 +206,20 @@ class _TimeLogScreenState extends State<TimeLogScreen> {
               // Summary Card for the day
               _buildDaySummaryCard(totalDuration, provider.myTimeLogs.length),
               const SizedBox(height: 24),
-              
+
               const Text(
                 'Session History',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
-              
+
               ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: provider.myTimeLogs.length,
                 itemBuilder: (context, index) {
                   final log = provider.myTimeLogs[index];
-                  return _buildTimeLogCard(log);
+                  return _buildSessionCardsForLog(log);
                 },
               ),
             ],
@@ -237,10 +243,7 @@ class _TimeLogScreenState extends State<TimeLogScreen> {
           children: [
             Text(
               DateFormat('EEEE, MMMM d, y').format(_selectedDate),
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
             const SizedBox(height: 8),
             Text(
@@ -253,10 +256,7 @@ class _TimeLogScreenState extends State<TimeLogScreen> {
             ),
             const Text(
               'Total Duration',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: Colors.white70, fontSize: 12),
             ),
             const SizedBox(height: 16),
             Container(
@@ -280,27 +280,91 @@ class _TimeLogScreenState extends State<TimeLogScreen> {
     );
   }
 
-  Widget _buildTimeLogCard(TimeLogModel log) {
-    final startTime = log.startTime != null
-        ? DateTimeUtils.formatTime(log.startTime!, format: 'h:mm a')
-        : '--:--';
-    final endTime = log.endTime != null
-        ? DateTimeUtils.formatTime(log.endTime!, format: 'h:mm a')
-        : (log.isActive ? 'Active' : '--:--');
-    
-    final duration = log.totalDuration != null
-        ? DateTimeUtils.durationToString(log.totalDuration!)
-        : (log.isActive ? 'Running...' : '0h 0m');
+  Widget _buildSessionCardsForLog(TimeLogModel log) {
+    List<Widget> cards = [];
 
-    final isSystemReason = ['lunch', 'prayer', 'short_leave', 'half_day'].contains(log.endReason);
-    final reasonText = log.customReason ?? (isSystemReason ? _formatReason(log.endReason) : 'Session Ended');
+    if (log.sessions.isNotEmpty) {
+      for (var session in log.sessions) {
+        cards.add(
+          _buildSessionCard(
+            startTime: session.startTime,
+            endTime: session.endTime,
+            duration: Duration(seconds: session.duration),
+            reason: session.reason,
+            customReason: session.customReason,
+            isActive: false,
+          ),
+        );
+      }
+      if (log.isActive && log.startTime != null) {
+        cards.add(
+          _buildSessionCard(
+            startTime: log.startTime,
+            endTime: null,
+            duration: null,
+            reason: null,
+            customReason: null,
+            isActive: true,
+          ),
+        );
+      }
+    } else {
+      cards.add(
+        _buildSessionCard(
+          startTime: log.startTime,
+          endTime: log.endTime,
+          duration: log.totalDuration,
+          reason: log.endReason,
+          customReason: log.customReason,
+          isActive: log.isActive,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: cards,
+    );
+  }
+
+  Widget _buildSessionCard({
+    required DateTime? startTime,
+    required DateTime? endTime,
+    required Duration? duration,
+    required String? reason,
+    required String? customReason,
+    required bool isActive,
+  }) {
+    final startStr = startTime != null
+        ? DateTimeUtils.formatTime(startTime.toLocal(), format: 'h:mm a')
+        : '--:--';
+    final endStr = endTime != null
+        ? DateTimeUtils.formatTime(endTime.toLocal(), format: 'h:mm a')
+        : (isActive ? 'Active' : '--:--');
+
+    final durationStr = duration != null
+        ? DateTimeUtils.durationToString(duration)
+        : (isActive ? 'Running...' : '0h 0m');
+
+    final isSystemReason = [
+      'lunch',
+      'prayer',
+      'short_leave',
+      'half_day',
+    ].contains(reason);
+
+    final reasonText =
+        customReason ??
+        (isSystemReason ? _formatReason(reason) : 'Session Ended');
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: log.isActive ? AppColors.success.withOpacity(0.5) : Colors.transparent,
+          color: isActive
+              ? AppColors.success.withOpacity(0.5)
+              : Colors.transparent,
         ),
       ),
       child: Padding(
@@ -316,11 +380,13 @@ class _TimeLogScreenState extends State<TimeLogScreen> {
                     Icon(
                       Icons.access_time_filled,
                       size: 16,
-                      color: log.isActive ? AppColors.success : AppColors.textSecondary,
+                      color: isActive
+                          ? AppColors.success
+                          : AppColors.textSecondary,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '$startTime - $endTime',
+                      '$startStr - $endStr',
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
@@ -329,15 +395,19 @@ class _TimeLogScreenState extends State<TimeLogScreen> {
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: (log.isActive ? AppColors.success : AppColors.primary).withOpacity(0.1),
+                    color: (isActive ? AppColors.success : AppColors.primary)
+                        .withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    duration,
+                    durationStr,
                     style: TextStyle(
-                      color: log.isActive ? AppColors.success : AppColors.primary,
+                      color: isActive ? AppColors.success : AppColors.primary,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -345,19 +415,21 @@ class _TimeLogScreenState extends State<TimeLogScreen> {
                 ),
               ],
             ),
-            if (log.endReason != null || log.isActive) ...[
+            if (reason != null || isActive) ...[
               const Divider(height: 24),
               Row(
                 children: [
                   Icon(
-                    log.isActive ? Icons.play_circle : Icons.stop_circle,
+                    isActive ? Icons.play_circle : Icons.stop_circle,
                     size: 16,
-                    color: log.isActive ? AppColors.success : AppColors.textSecondary,
+                    color: isActive
+                        ? AppColors.success
+                        : AppColors.textSecondary,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      log.isActive ? 'Currently Active' : reasonText,
+                      isActive ? 'Currently Active' : reasonText,
                       style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 13,
@@ -377,8 +449,13 @@ class _TimeLogScreenState extends State<TimeLogScreen> {
 
   String _formatReason(String? reason) {
     if (reason == null) return '';
-    return reason.split('_').map((word) => 
-      word.isNotEmpty ? '${word[0].toUpperCase()}${word.substring(1)}' : ''
-    ).join(' ');
+    return reason
+        .split('_')
+        .map(
+          (word) => word.isNotEmpty
+              ? '${word[0].toUpperCase()}${word.substring(1)}'
+              : '',
+        )
+        .join(' ');
   }
 }

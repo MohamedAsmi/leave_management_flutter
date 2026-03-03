@@ -571,7 +571,7 @@ class _HrTimeLogScreenState extends State<HrTimeLogScreen> {
             itemCount: _logs.length,
             itemBuilder: (context, index) {
               final log = _logs[index];
-              return _buildTimeLogCard(log);
+              return _buildSessionCardsForLog(log);
             },
           ),
         ],
@@ -630,37 +630,93 @@ class _HrTimeLogScreenState extends State<HrTimeLogScreen> {
     );
   }
 
-  Widget _buildTimeLogCard(TimeLogModel log) {
-    final isCurrentlyActive = log.isActive && log.endTime == null;
-    
+  Widget _buildSessionCardsForLog(TimeLogModel log) {
+    List<Widget> cards = [];
 
-    final startTime = log.startTime != null
-        ? DateTimeUtils.formatTime(log.startTime!, format: 'h:mm a')
+    if (log.sessions.isNotEmpty) {
+      for (var session in log.sessions) {
+        cards.add(
+          _buildSessionCard(
+            log: log,
+            startTime: session.startTime,
+            endTime: session.endTime,
+            duration: Duration(seconds: session.duration),
+            reason: session.reason,
+            customReason: session.customReason,
+            isActive: false,
+          ),
+        );
+      }
+      if (log.isActive && log.startTime != null) {
+        cards.add(
+          _buildSessionCard(
+            log: log,
+            startTime: log.startTime!,
+            endTime: null,
+            duration: null,
+            reason: null,
+            customReason: null,
+            isActive: true,
+          ),
+        );
+      }
+    } else {
+      cards.add(
+        _buildSessionCard(
+          log: log,
+          startTime: log.startTime,
+          endTime: log.endTime,
+          duration: log.totalDuration,
+          reason: log.endReason,
+          customReason: log.customReason,
+          isActive: log.isActive,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: cards,
+    );
+  }
+
+  Widget _buildSessionCard({
+    required TimeLogModel log,
+    required DateTime? startTime,
+    required DateTime? endTime,
+    required Duration? duration,
+    required String? reason,
+    required String? customReason,
+    required bool isActive,
+  }) {
+    final startStr = startTime != null
+        ? DateTimeUtils.formatTime(startTime.toLocal(), format: 'h:mm a')
         : '--:--';
-    final endTime = log.endTime != null
-        ? DateTimeUtils.formatTime(log.endTime!, format: 'h:mm a')
-        : (isCurrentlyActive ? 'Active' : '--:--');
+    final endStr = endTime != null
+        ? DateTimeUtils.formatTime(endTime.toLocal(), format: 'h:mm a')
+        : (isActive ? 'Active' : '--:--');
 
-    final duration = log.totalDuration != null
-        ? DateTimeUtils.durationToString(log.totalDuration!)
-        : (isCurrentlyActive ? 'Running...' : '0h 0m');
+    final durationStr = duration != null
+        ? DateTimeUtils.durationToString(duration)
+        : (isActive ? 'Running...' : '0h 0m');
 
     final isSystemReason = [
       'lunch',
       'prayer',
       'short_leave',
       'half_day',
-    ].contains(log.endReason);
+    ].contains(reason);
+
     final reasonText =
-        log.customReason ??
-        (isSystemReason ? _formatReason(log.endReason) : 'Session Ended');
+        customReason ??
+        (isSystemReason ? _formatReason(reason) : 'Session Ended');
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isCurrentlyActive
+          color: isActive
               ? AppColors.success.withOpacity(0.5)
               : Colors.transparent,
         ),
@@ -678,13 +734,13 @@ class _HrTimeLogScreenState extends State<HrTimeLogScreen> {
                     Icon(
                       Icons.access_time_filled,
                       size: 16,
-                      color: isCurrentlyActive
+                      color: isActive
                           ? AppColors.success
                           : AppColors.textSecondary,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '$startTime - $endTime',
+                      '$startStr - $endStr',
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
@@ -701,16 +757,14 @@ class _HrTimeLogScreenState extends State<HrTimeLogScreen> {
                       ),
                       decoration: BoxDecoration(
                         color:
-                            (isCurrentlyActive
-                                    ? AppColors.success
-                                    : AppColors.primary)
+                            (isActive ? AppColors.success : AppColors.primary)
                                 .withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        duration,
+                        durationStr,
                         style: TextStyle(
-                          color: isCurrentlyActive
+                          color: isActive
                               ? AppColors.success
                               : AppColors.primary,
                           fontWeight: FontWeight.bold,
@@ -733,21 +787,21 @@ class _HrTimeLogScreenState extends State<HrTimeLogScreen> {
                 ),
               ],
             ),
-            if (log.endReason != null || isCurrentlyActive) ...[
+            if (reason != null || isActive) ...[
               const Divider(height: 24),
               Row(
                 children: [
                   Icon(
-                    isCurrentlyActive ? Icons.play_circle : Icons.stop_circle,
+                    isActive ? Icons.play_circle : Icons.stop_circle,
                     size: 16,
-                    color: isCurrentlyActive
+                    color: isActive
                         ? AppColors.success
                         : AppColors.textSecondary,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      isCurrentlyActive ? 'Currently Active' : reasonText,
+                      isActive ? 'Currently Active' : reasonText,
                       style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 13,

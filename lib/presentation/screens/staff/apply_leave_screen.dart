@@ -14,7 +14,7 @@ class ApplyLeaveScreen extends StatefulWidget {
 
 class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   // Form Fields
   String _leaveType = 'casual'; // casual, medical, annual, short
   String _leaveMode = 'full'; // full, first_half, second_half, short
@@ -71,11 +71,11 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
   }
 
   Future<void> _selectDate(BuildContext context, bool isStart) async {
-    final initialDate = isStart
-        ? _startDate
-        : (_endDate ?? _startDate);
-        
-    final firstDate = DateTime.now().subtract(const Duration(days: 30)); // Allow past 30 days
+    final initialDate = isStart ? _startDate : (_endDate ?? _startDate);
+
+    final firstDate = DateTime.now().subtract(
+      const Duration(days: 30),
+    ); // Allow past 30 days
     final lastDate = DateTime.now().add(const Duration(days: 365));
 
     final picked = await showDatePicker(
@@ -104,7 +104,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final provider = context.read<LeaveProvider>();
-    
+
     double? totalDays;
     if (_leaveMode == 'first_half' || _leaveMode == 'second_half') {
       totalDays = 0.5;
@@ -112,7 +112,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
 
     final success = await provider.applyLeave(
       leaveType: _leaveType,
-      leaveMode: _leaveMode, 
+      leaveMode: _leaveMode,
       startDate: _startDate,
       endDate: _leaveMode == 'full' ? (_endDate ?? _startDate) : _startDate,
       reason: _reasonController.text.trim(),
@@ -145,9 +145,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
     final isLoading = provider.isLoading;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Apply Leave'),
-      ),
+      appBar: AppBar(title: const Text('Apply Leave')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -164,10 +162,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                   prefixIcon: Icon(Icons.category),
                 ),
                 items: _leaveTypeLabels.entries.map((e) {
-                  return DropdownMenuItem(
-                    value: e.key,
-                    child: Text(e.value),
-                  );
+                  return DropdownMenuItem(value: e.key, child: Text(e.value));
                 }).toList(),
                 onChanged: isLoading ? null : _onLeaveTypeChanged,
               ),
@@ -179,7 +174,10 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Duration', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Duration',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -187,8 +185,8 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                         _buildModeChip('full', 'Full Day'),
                         // Annual leave is Full Day only
                         if (_leaveType != 'annual') ...[
-                           _buildModeChip('first_half', 'First Half'),
-                           _buildModeChip('second_half', 'Second Half'),
+                          _buildModeChip('first_half', 'First Half'),
+                          _buildModeChip('second_half', 'Second Half'),
                         ],
                       ],
                     ),
@@ -201,10 +199,10 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                 children: [
                   Expanded(
                     child: _buildDatePicker(
-                      context, 
-                      'Start Date', 
-                      _startDate, 
-                      () => _selectDate(context, true)
+                      context,
+                      'Start Date',
+                      _startDate,
+                      () => _selectDate(context, true),
                     ),
                   ),
                   // Show End Date only for Full Day mode
@@ -212,10 +210,10 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildDatePicker(
-                        context, 
-                        'End Date', 
-                        _endDate, 
-                        () => _selectDate(context, false)
+                        context,
+                        'End Date',
+                        _endDate,
+                        () => _selectDate(context, false),
                       ),
                     ),
                   ],
@@ -253,13 +251,19 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                 ),
                 child: isLoading
                     ? const SizedBox(
-                        height: 20, 
-                        width: 20, 
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Text(
                         'Submit Application',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
               ),
             ],
@@ -288,10 +292,10 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
   }
 
   Widget _buildDatePicker(
-    BuildContext context, 
-    String label, 
-    DateTime? date, 
-    VoidCallback onTap
+    BuildContext context,
+    String label,
+    DateTime? date,
+    VoidCallback onTap,
   ) {
     return InkWell(
       onTap: onTap,
@@ -303,12 +307,10 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
           prefixIcon: const Icon(Icons.calendar_today),
         ),
         child: Text(
-          date != null 
-              ? DateFormat('MMM dd, yyyy').format(date) 
+          date != null
+              ? DateFormat('MMM dd, yyyy').format(date.toLocal())
               : 'Select Date',
-          style: TextStyle(
-            color: date != null ? Colors.black87 : Colors.grey,
-          ),
+          style: TextStyle(color: date != null ? Colors.black87 : Colors.grey),
         ),
       ),
     );

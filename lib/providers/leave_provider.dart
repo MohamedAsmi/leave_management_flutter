@@ -30,6 +30,7 @@ class LeaveProvider with ChangeNotifier {
     required String reason,
     double? totalDays,
     String? leaveMode,
+    int? userId,
   }) async {
     _setLoading(true);
     _errorMessage = null;
@@ -42,6 +43,7 @@ class LeaveProvider with ChangeNotifier {
         reason: reason,
         totalDays: totalDays,
         leaveMode: leaveMode,
+        userId: userId,
       );
 
       _myLeaves.insert(0, leave);

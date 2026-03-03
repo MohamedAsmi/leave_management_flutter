@@ -346,30 +346,31 @@ class _StaffDashboardState extends State<StaffDashboard> {
                       // START BUTTON
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: timeLogProvider.hasDutyStartedToday
-                              ? null // Disable if duty started today (permanently for the day)
+                          onPressed:
+                              hasActiveSession ||
+                                  (timeLogProvider.hasDutyStartedToday &&
+                                      !timeLogProvider.isDutyCompletedToday)
+                              ? null // Disable if active or paused (not completed)
                               : () async {
                                   _showDutyTypeSelectionDialog();
                                 },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: timeLogProvider.isDutyCompletedToday
-                                ? Colors.grey // Visual cue for ended duty
-                                : AppColors.success,
+                            backgroundColor: AppColors.success,
                             foregroundColor: Colors.white,
                             padding: EdgeInsets.zero, // Ensures text fits
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            disabledBackgroundColor: Colors.grey.shade300,
                           ),
-                          child: Row(
+                          child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
-                                timeLogProvider.isDutyCompletedToday ? Icons.check_circle : Icons.play_arrow,
-                                size: 20
-                              ),
-                              const SizedBox(width: 4),
+                              Icon(Icons.play_arrow, size: 20),
+                              SizedBox(width: 4),
                               Text(
-                                timeLogProvider.isDutyCompletedToday ? 'Completed' : 'Start',
-                                style: const TextStyle(fontWeight: FontWeight.bold)
+                                'Start',
+                                style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
@@ -382,54 +383,72 @@ class _StaffDashboardState extends State<StaffDashboard> {
                         child: OutlinedButton(
                           onPressed: hasActiveSession
                               ? () => _showEndSessionDialog()
-                              : (timeLogProvider.hasDutyStartedToday && !timeLogProvider.isDutyCompletedToday)
-                                  ? () async {
-                                      final lastId = timeLogProvider.lastLogId;
-                                      if (lastId != null) {
-                                        final success = await timeLogProvider.resumeSession(lastId);
-                                        if (context.mounted && success) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Session resumed!'),
-                                              backgroundColor: AppColors.success,
-                                            ),
-                                          );
-                                          await _loadData();
-                                        }
-                                      } else {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('No previous session to resume found.'),
-                                            backgroundColor: AppColors.error,
-                                          ),
-                                        );
-                                      }
+                              : (timeLogProvider.hasDutyStartedToday &&
+                                    !timeLogProvider.isDutyCompletedToday)
+                              ? () async {
+                                  final lastId = timeLogProvider.lastLogId;
+                                  if (lastId != null) {
+                                    final success = await timeLogProvider
+                                        .resumeSession(lastId);
+                                    if (context.mounted && success) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Session resumed!'),
+                                          backgroundColor: AppColors.success,
+                                        ),
+                                      );
+                                      await _loadData();
                                     }
-                                  : null,
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'No previous session to resume found.',
+                                        ),
+                                        backgroundColor: AppColors.error,
+                                      ),
+                                    );
+                                  }
+                                }
+                              : null,
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
                               color: hasActiveSession
                                   ? AppColors.warning
-                                  : (timeLogProvider.hasDutyStartedToday && !timeLogProvider.isDutyCompletedToday
-                                      ? AppColors.success
-                                      : Colors.grey),
+                                  : (timeLogProvider.hasDutyStartedToday &&
+                                            !timeLogProvider
+                                                .isDutyCompletedToday
+                                        ? AppColors.success
+                                        : Colors.grey),
                             ),
                             foregroundColor: hasActiveSession
                                 ? AppColors.warning
-                                : (timeLogProvider.hasDutyStartedToday && !timeLogProvider.isDutyCompletedToday
-                                    ? AppColors.success
-                                    : Colors.grey),
+                                : (timeLogProvider.hasDutyStartedToday &&
+                                          !timeLogProvider.isDutyCompletedToday
+                                      ? AppColors.success
+                                      : Colors.grey),
                             padding: EdgeInsets.zero,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(hasActiveSession ? Icons.pause : Icons.play_arrow, size: 20),
+                              Icon(
+                                hasActiveSession
+                                    ? Icons.pause
+                                    : Icons.play_arrow,
+                                size: 20,
+                              ),
                               SizedBox(width: 4),
                               Text(
                                 hasActiveSession ? 'Pause' : 'Resume',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),
@@ -440,25 +459,37 @@ class _StaffDashboardState extends State<StaffDashboard> {
                       // END DUTY BUTTON
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: (hasActiveSession || (timeLogProvider.hasDutyStartedToday && !timeLogProvider.isDutyCompletedToday))
+                          onPressed:
+                              (hasActiveSession ||
+                                  (timeLogProvider.hasDutyStartedToday &&
+                                      !timeLogProvider.isDutyCompletedToday))
                               ? () => _endDutyToday()
                               : null,
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
-                              color: (hasActiveSession || (timeLogProvider.hasDutyStartedToday && !timeLogProvider.isDutyCompletedToday))
+                              color:
+                                  (hasActiveSession ||
+                                      (timeLogProvider.hasDutyStartedToday &&
+                                          !timeLogProvider
+                                              .isDutyCompletedToday))
                                   ? AppColors.error
                                   : Colors.grey,
                             ),
                             foregroundColor: AppColors.error,
                             padding: EdgeInsets.zero,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                           child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.stop, size: 20),
                               SizedBox(width: 4),
-                              Text('End', style: TextStyle(fontWeight: FontWeight.bold)),
+                              Text(
+                                'End',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
                             ],
                           ),
                         ),
@@ -520,10 +551,16 @@ class _StaffDashboardState extends State<StaffDashboard> {
   }
 
   Widget _buildBalanceCard(
-      String title, num count, IconData icon, Color color) {
+    String title,
+    num count,
+    IconData icon,
+    Color color,
+  ) {
     // Format to remove trailing .0 if generic integer
-    String formattedCount = count % 1 == 0 ? count.toInt().toString() : count.toString();
-    
+    String formattedCount = count % 1 == 0
+        ? count.toInt().toString()
+        : count.toString();
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
@@ -543,10 +580,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
           const SizedBox(height: 8),
           Text(
             formattedCount,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
@@ -824,11 +858,13 @@ class _StaffDashboardState extends State<StaffDashboard> {
               Icons.event_available,
               AppColors.primary,
               () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const ApplyLeaveScreen(),
-                  ),
-                ).then((_) => _loadData());
+                Navigator.of(context)
+                    .push(
+                      MaterialPageRoute(
+                        builder: (context) => const ApplyLeaveScreen(),
+                      ),
+                    )
+                    .then((_) => _loadData());
               },
             ),
             _buildActionCard(
@@ -839,31 +875,24 @@ class _StaffDashboardState extends State<StaffDashboard> {
                 context.push('/my-leaves');
               },
             ),
+            _buildActionCard('My Projects', Icons.folder, Colors.purple, () {
+              context.push('/staff/projects');
+            }),
+            _buildActionCard('My Tasks', Icons.task_alt, Colors.orange, () {
+              context.push('/staff/tasks');
+            }),
+            _buildActionCard('Time Logs', Icons.history, AppColors.info, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const TimeLogScreen()),
+              );
+            }),
             _buildActionCard(
-              'My Projects',
-              Icons.folder,
-              Colors.purple,
+              'Time Adjustments',
+              Icons.more_time,
+              Colors.teal,
               () {
-                context.push('/staff/projects');
-              },
-            ),
-            _buildActionCard(
-              'My Tasks',
-              Icons.task_alt,
-              Colors.orange,
-              () {
-                context.push('/staff/tasks');
-              },
-            ),
-            _buildActionCard(
-              'Time Logs',
-              Icons.history,
-              AppColors.info,
-              () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const TimeLogScreen()),
-                );
+                context.push('/staff/time-adjustments');
               },
             ),
             _buildActionCard('Profile', Icons.person, AppColors.warning, () {
@@ -970,7 +999,8 @@ class _StaffDashboardState extends State<StaffDashboard> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => LeaveDetailScreen(leave: leave),
+                            builder: (context) =>
+                                LeaveDetailScreen(leave: leave),
                           ),
                         ).then((_) => _loadData());
                       },
@@ -1174,45 +1204,40 @@ class _StaffDashboardState extends State<StaffDashboard> {
   }
 
   void _endDutyToday() {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      title: Row(
-        children: const [
-          Icon(Icons.stop_circle, color: AppColors.error),
-          SizedBox(width: 8),
-          Text(
-            'End Duty Today',
-            style: TextStyle(fontWeight: FontWeight.bold),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Row(
+          children: const [
+            Icon(Icons.stop_circle, color: AppColors.error),
+            SizedBox(width: 8),
+            Text(
+              'End Duty Today',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to end your duty for today? '
+          'This will finalize your working hours and stop time tracking.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () {
+              _endSession('other', context, customReason: 'End of workday');
+            },
+            child: const Text('End'),
           ),
         ],
       ),
-      content: const Text(
-        'Are you sure you want to end your duty for today? '
-        'This will finalize your working hours and stop time tracking.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.error,
-          ),
-          onPressed: () {
-                _endSession('other', context, customReason: 'End of workday');
-              },
-          child: const Text('End'),
-        ),
-      ],
-    ),
-  );
-}
-
+    );
+  }
 
   void _showCustomReasonDialog() {
     final TextEditingController reasonController = TextEditingController();
@@ -1297,19 +1322,18 @@ class _StaffDashboardState extends State<StaffDashboard> {
     if (success) {
       // ONLY end session if leave application succeeds
       await timeLogProvider.endSession(endReason: 'short_leave');
-      
+
       scaffoldMessenger.showSnackBar(
         const SnackBar(
-          content: Text(
-            'Session ended and short leave applied successfully!',
-          ),
+          content: Text('Session ended and short leave applied successfully!'),
           backgroundColor: AppColors.success,
         ),
       );
       await _loadData();
       await authProvider.refreshUserData();
     } else {
-      final errorMessage = leaveProvider.errorMessage ?? 'Failed to apply leave';
+      final errorMessage =
+          leaveProvider.errorMessage ?? 'Failed to apply leave';
       scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text(errorMessage.replaceAll('Exception: ', '')),
@@ -1322,9 +1346,9 @@ class _StaffDashboardState extends State<StaffDashboard> {
   void _showDutyTypeSelectionDialog() {
     final dutyTypeProvider = context.read<DutyTypeProvider>();
     // Ensure we have latest data from storage
-    dutyTypeProvider.loadFromCache(); 
+    dutyTypeProvider.loadFromCache();
     // Actually provider loads on main. Be safe and just use what's there or trigger load if empty.
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1337,14 +1361,14 @@ class _StaffDashboardState extends State<StaffDashboard> {
                 child: Center(child: CircularProgressIndicator()),
               );
             }
-            
+
             if (provider.dutyTypes.isEmpty) {
-               // Try fetching if empty
-               provider.fetchAndCacheDutyTypes();
-               return const SizedBox(
-                 height: 100,
-                 child: Center(child: CircularProgressIndicator()),
-               );
+              // Try fetching if empty
+              provider.fetchAndCacheDutyTypes();
+              return const SizedBox(
+                height: 100,
+                child: Center(child: CircularProgressIndicator()),
+              );
             }
 
             return SizedBox(
@@ -1381,7 +1405,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
   Future<void> _startSession(int dutyTypeId) async {
     final timeLogProvider = context.read<TimeLogProvider>();
     final success = await timeLogProvider.startSession(dutyTypeId: dutyTypeId);
-    
+
     if (mounted && success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -1392,9 +1416,6 @@ class _StaffDashboardState extends State<StaffDashboard> {
       await _loadData();
     }
   }
-
-
-
 
   Color _getLeaveStatusColor(String status) {
     switch (status.toLowerCase()) {

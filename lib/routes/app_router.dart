@@ -27,6 +27,12 @@ import 'package:leave_management/presentation/screens/staff/my_tasks_screen.dart
 import 'package:leave_management/presentation/screens/staff/task_detail_screen.dart';
 import 'package:leave_management/presentation/screens/common/notifications_screen.dart';
 
+import 'package:leave_management/presentation/screens/hr/time_adjustment_approval_screen.dart';
+import 'package:leave_management/presentation/screens/hr/hr_apply_leave_screen.dart';
+import 'package:leave_management/presentation/screens/hr/HRTimeTracking_screen.dart';
+import 'package:leave_management/presentation/screens/staff/my_time_adjustments_screen.dart';
+import 'package:leave_management/presentation/screens/staff/time_adjustment_request_screen.dart';
+
 // PM Screens
 import 'package:leave_management/presentation/screens/pm/pm_dashboard.dart';
 import 'package:leave_management/presentation/screens/pm/pm_projects_screen.dart';
@@ -162,6 +168,21 @@ class AppRouter {
       ),
 
       GoRoute(
+        path: '/hr/time-adjustments',
+        builder: (context, state) => const TimeAdjustmentApprovalScreen(),
+      ),
+
+      GoRoute(
+        path: '/hr/apply-leave',
+        builder: (context, state) => const HrApplyLeaveScreen(),
+      ),
+
+      GoRoute(
+        path: '/hr/time-tracking',
+        builder: (context, state) => const HRTimeTrackingScreen(),
+      ),
+
+      GoRoute(
         path: '/staff/dashboard',
         builder: (context, state) => const StaffDashboard(),
       ),
@@ -180,11 +201,21 @@ class AppRouter {
           ),
         ],
       ),
-      
+
       // Apply Leave
       GoRoute(
         path: '/apply-leave',
         builder: (context, state) => const ApplyLeaveScreen(),
+      ),
+
+      // Time Adjustments
+      GoRoute(
+        path: '/staff/time-adjustments',
+        builder: (context, state) => const TimeAdjustmentRequestScreen(),
+      ),
+      GoRoute(
+        path: '/staff/time-adjustments/request',
+        builder: (context, state) => const TimeAdjustmentRequestScreen(),
       ),
 
       // Notifications (accessible by all roles)
@@ -198,7 +229,7 @@ class AppRouter {
         path: '/staff/projects',
         builder: (context, state) => const StaffProjectsScreen(),
       ),
-      
+
       GoRoute(
         path: '/staff/projects/:id',
         builder: (context, state) {

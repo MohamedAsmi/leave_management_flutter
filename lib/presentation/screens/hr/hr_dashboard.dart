@@ -11,6 +11,8 @@ import '../../../data/models/time_log_model.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/utils/date_time_utils.dart';
 import 'package:intl/intl.dart';
+import '../../../providers/time_adjustment_provider.dart';
+import '../../../data/models/time_adjustment_request_model.dart';
 
 class HRDashboard extends StatefulWidget {
   const HRDashboard({super.key});
@@ -30,6 +32,7 @@ class _HRDashboardState extends State<HRDashboard> {
     final leaveProvider = context.read<LeaveProvider>();
     final timeLogProvider = context.read<TimeLogProvider>();
     final notificationProvider = context.read<NotificationProvider>();
+    final timeAdjustmentProvider = context.read<TimeAdjustmentProvider>();
 
     await Future.wait([
       leaveProvider.fetchAllLeaves(),
@@ -39,6 +42,7 @@ class _HRDashboardState extends State<HRDashboard> {
       timeLogProvider.fetchActiveSession(), // Add personal session
       timeLogProvider.fetchTodayWorkingHours(), // Add personal hours
       notificationProvider.fetchNotifications(),
+      timeAdjustmentProvider.fetchAllRequests(status: 'pending'),
     ]);
   }
 
@@ -114,7 +118,7 @@ class _HRDashboardState extends State<HRDashboard> {
                             notification.createdAt != null
                                 ? DateFormat(
                                     'MMM d, y h:mm a',
-                                  ).format(notification.createdAt!)
+                                  ).format(notification.createdAt!.toLocal())
                                 : '',
                             style: const TextStyle(fontSize: 11),
                           ),
@@ -589,7 +593,7 @@ class _HRDashboardState extends State<HRDashboard> {
                           if (leave.endDate != null &&
                               leave.endDate!.isAfter(leave.startDate))
                             Text(
-                              '${DateFormat('MMM d').format(leave.startDate)} - ${DateFormat('MMM d, y').format(leave.endDate!)}',
+                              '${DateFormat('MMM d').format(leave.startDate.toLocal())} - ${DateFormat('MMM d, y').format(leave.endDate!.toLocal())}',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: AppColors.textSecondary,
@@ -657,17 +661,20 @@ class _HRDashboardState extends State<HRDashboard> {
               Icons.event_available,
               AppColors.primary,
               () {
-                context.push('/apply-leave');
+                context.push('/hr/apply-leave');
               },
             ),
             _buildActionCard(
-              'Leaves',
-              Icons.approval,
-              AppColors.success,
+              'Time Adjustments',
+              Icons.more_time,
+              Colors.blueGrey,
               () {
-                context.push('/hr/leave-approvals');
+                context.push('/hr/time-adjustments');
               },
             ),
+            _buildActionCard('Leaves', Icons.approval, AppColors.success, () {
+              context.push('/hr/leave-approvals');
+            }),
             _buildActionCard(
               'Team Calendar',
               Icons.calendar_month,
@@ -763,12 +770,20 @@ class _HRDashboardState extends State<HRDashboard> {
   }
 
   Widget _buildPendingApprovals() {
-    return Consumer<LeaveProvider>(
-      builder: (context, provider, _) {
-        final pendingLeaves = provider.allLeaves
+    return Consumer2<LeaveProvider, TimeAdjustmentProvider>(
+      builder: (context, leaveProvider, timeAdjustmentProvider, _) {
+        final pendingLeaves = leaveProvider.allLeaves
             .where((leave) => leave.status == 'pending')
             .take(3)
             .toList();
+            
+        final pendingAdjustments = timeAdjustmentProvider.allRequests
+            .where((req) => req.status == 'pending')
+            .take(3)
+            .toList();
+            
+        final activeItems = [...pendingLeaves, ...pendingAdjustments];
+        final isLoading = leaveProvider.isLoading || timeAdjustmentProvider.isLoading;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -780,19 +795,25 @@ class _HRDashboardState extends State<HRDashboard> {
                   'Pending Approvals',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                if (pendingLeaves.isNotEmpty)
-                  TextButton(
-                    onPressed: () {
-                      context.push('/hr/leave-approvals');
-                    },
-                    child: const Text('View All'),
+                if (activeItems.isNotEmpty)
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () => context.push('/hr/time-adjustments'),
+                        child: const Text('Adjustments'),
+                      ),
+                      TextButton(
+                        onPressed: () => context.push('/hr/leave-approvals'),
+                        child: const Text('Leaves'),
+                      ),
+                    ],
                   ),
               ],
             ),
             const SizedBox(height: 12),
-            if (provider.isLoading)
+            if (isLoading)
               const Center(child: CircularProgressIndicator())
-            else if (pendingLeaves.isEmpty)
+            else if (activeItems.isEmpty)
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -824,11 +845,14 @@ class _HRDashboardState extends State<HRDashboard> {
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: pendingLeaves.length,
+                itemCount: activeItems.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
-                  final leave = pendingLeaves[index];
-                  return _buildApprovalCard(leave);
+                  final item = activeItems[index];
+                  if (item is TimeAdjustmentRequestModel) {
+                     return _buildTimeAdjustmentApprovalCard(item);
+                  }
+                  return _buildApprovalCard(item);
                 },
               ),
           ],
@@ -924,8 +948,8 @@ class _HRDashboardState extends State<HRDashboard> {
               const SizedBox(width: 4),
               Text(
                 leave.leaveType == 'half_day'
-                    ? '${DateFormat('MMM d, y').format(leave.startDate)} - Half Day'
-                    : '${DateFormat('MMM d').format(leave.startDate)} - ${DateFormat('MMM d, y').format(leave.endDate ?? leave.startDate)}',
+                    ? '${DateFormat('MMM d, y').format(leave.startDate.toLocal())} - Half Day'
+                    : '${DateFormat('MMM d').format(leave.startDate.toLocal())} - ${DateFormat('MMM d, y').format((leave.endDate ?? leave.startDate).toLocal())}',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
               ),
             ],
@@ -973,6 +997,174 @@ class _HRDashboardState extends State<HRDashboard> {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Leave request approved')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.check, size: 18),
+                  label: const Text('Approve'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimeAdjustmentApprovalCard(TimeAdjustmentRequestModel request) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: AppColors.secondary.withOpacity(0.1),
+                child: Text(
+                  request.userId.toString(),
+                  style: TextStyle(
+                    color: AppColors.secondary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      request.userName ?? 'Employee #${request.userId}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      'TIME ADJUSTMENT',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'Pending',
+                  style: TextStyle(
+                    color: AppColors.warning,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_today,
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                DateFormat('MMM d, y').format(request.date.toLocal()),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              ),
+            ],
+          ),
+          if (request.requestedStartTime != null || request.requestedEndTime != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  Icons.schedule,
+                  size: 14,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${request.requestedStartTime != null ? DateFormat('HH:mm').format(request.requestedStartTime!.toLocal()) : '--'} to ${request.requestedEndTime != null ? DateFormat('HH:mm').format(request.requestedEndTime!.toLocal()) : '--'}',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (request.reason.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              request.reason,
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final provider = context.read<TimeAdjustmentProvider>();
+                    await provider.rejectRequest(request.id, 'Rejected by HR');
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Time adjustment rejected')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.close, size: 18),
+                  label: const Text('Reject'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: BorderSide(color: AppColors.error),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final provider = context.read<TimeAdjustmentProvider>();
+                    await provider.approveRequest(request.id);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Time adjustment approved')),
                       );
                     }
                   },
@@ -1084,126 +1276,128 @@ class _HRDashboardState extends State<HRDashboard> {
                             Divider(height: 1, color: AppColors.border),
                         itemBuilder: (context, index) {
                           final log = todayLogs[index];
-                    final isActive = log.endTime == null;
-                    final duration = log.endTime != null
-                        ? log.endTime!.difference(log.startTime!)
-                        : DateTime.now().difference(log.startTime!);
-                    final hours = duration.inHours;
-                    final minutes = duration.inMinutes.remainder(60);
+                          final isActive = log.endTime == null;
+                          final duration = log.endTime != null
+                              ? log.endTime!.difference(log.startTime!)
+                              : DateTime.now().difference(log.startTime!);
+                          final hours = duration.inHours;
+                          final minutes = duration.inMinutes.remainder(60);
 
-                    // Get color based on end reason
-                    Color getEndReasonColor(String? reason) {
-                      if (reason == null) return AppColors.info;
-                      switch (reason.toLowerCase()) {
-                        case 'lunch':
-                          return AppColors.warning;
-                        case 'prayer':
-                          return AppColors.secondary;
-                        case 'short_leave':
-                          return AppColors.error;
-                        case 'half_day':
-                          return Colors.orange;
-                        case 'other':
-                          return Colors.purple;
-                        default:
-                          return AppColors.info;
-                      }
-                    }
+                          // Get color based on end reason
+                          Color getEndReasonColor(String? reason) {
+                            if (reason == null) return AppColors.info;
+                            switch (reason.toLowerCase()) {
+                              case 'lunch':
+                                return AppColors.warning;
+                              case 'prayer':
+                                return AppColors.secondary;
+                              case 'short_leave':
+                                return AppColors.error;
+                              case 'half_day':
+                                return Colors.orange;
+                              case 'other':
+                                return Colors.purple;
+                              default:
+                                return AppColors.info;
+                            }
+                          }
 
-                    String getEndReasonLabel(
-                      String? reason,
-                      String? customReason,
-                    ) {
-                      if (reason == null) return 'Ended';
-                      switch (reason.toLowerCase()) {
-                        case 'lunch':
-                          return 'Lunch';
-                        case 'prayer':
-                          return 'Prayer';
-                        case 'short_leave':
-                          return 'Short Leave';
-                        case 'half_day':
-                          return 'Half Day';
-                        case 'other':
-                          return customReason ?? 'Other';
-                        default:
-                          return 'Ended';
-                      }
-                    }
+                          String getEndReasonLabel(
+                            String? reason,
+                            String? customReason,
+                          ) {
+                            if (reason == null) return 'Ended';
+                            switch (reason.toLowerCase()) {
+                              case 'lunch':
+                                return 'Lunch';
+                              case 'prayer':
+                                return 'Prayer';
+                              case 'short_leave':
+                                return 'Short Leave';
+                              case 'half_day':
+                                return 'Half Day';
+                              case 'other':
+                                return customReason ?? 'Other';
+                              default:
+                                return 'Ended';
+                            }
+                          }
 
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: isActive
-                            ? AppColors.success.withOpacity(0.1)
-                            : getEndReasonColor(log.endReason).withOpacity(0.1),
-                        child: Icon(
-                          isActive ? Icons.work : Icons.work_off,
-                          color: isActive
-                              ? AppColors.success
-                              : getEndReasonColor(log.endReason),
-                          size: 20,
-                        ),
-                      ),
-                      title: Text(
-                        log.userName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
-                        ),
-                      ),
-                      subtitle: Text(
-                        'Started: ${DateFormat('h:mm a').format(log.startTime!)}',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                        ),
-                      ),
-                      trailing: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isActive
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: isActive
                                   ? AppColors.success.withOpacity(0.1)
                                   : getEndReasonColor(
                                       log.endReason,
                                     ).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              isActive
-                                  ? 'Active'
-                                  : getEndReasonLabel(
-                                      log.endReason,
-                                      log.customReason,
-                                    ),
-                              style: TextStyle(
+                              child: Icon(
+                                isActive ? Icons.work : Icons.work_off,
                                 color: isActive
                                     ? AppColors.success
                                     : getEndReasonColor(log.endReason),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
+                                size: 20,
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${hours}h ${minutes}m',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
+                            title: Text(
+                              log.userName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
                             ),
-                          ),
-                        ],
+                            subtitle: Text(
+                              'Started: ${DateFormat('h:mm a').format(log.startTime!)}',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                            trailing: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isActive
+                                        ? AppColors.success.withOpacity(0.1)
+                                        : getEndReasonColor(
+                                            log.endReason,
+                                          ).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    isActive
+                                        ? 'Active'
+                                        : getEndReasonLabel(
+                                            log.endReason,
+                                            log.customReason,
+                                          ),
+                                    style: TextStyle(
+                                      color: isActive
+                                          ? AppColors.success
+                                          : getEndReasonColor(log.endReason),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${hours}h ${minutes}m',
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
                       const SizedBox(height: 8),
                       Padding(
                         padding: const EdgeInsets.all(12),
@@ -1419,29 +1613,35 @@ class _HRDashboardState extends State<HRDashboard> {
                                   _showDutyTypeSelectionDialog();
                                 },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: timeLogProvider.isDutyCompletedToday
-                                ? Colors.grey // Visual cue for ended duty
+                            backgroundColor:
+                                timeLogProvider.isDutyCompletedToday
+                                ? Colors
+                                      .grey // Visual cue for ended duty
                                 : AppColors.success,
                             foregroundColor: Colors.white,
                             padding: EdgeInsets.zero, // Ensures text fits
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                  timeLogProvider.isDutyCompletedToday
-                                      ? Icons.check_circle
-                                      : Icons.play_arrow,
-                                  size: 20),
+                                timeLogProvider.isDutyCompletedToday
+                                    ? Icons.check_circle
+                                    : Icons.play_arrow,
+                                size: 20,
+                              ),
                               const SizedBox(width: 4),
                               Text(
-                                  timeLogProvider.isDutyCompletedToday
-                                      ? 'Completed'
-                                      : 'Start',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold)),
+                                timeLogProvider.isDutyCompletedToday
+                                    ? 'Completed'
+                                    : 'Start',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -1454,64 +1654,71 @@ class _HRDashboardState extends State<HRDashboard> {
                           onPressed: hasActiveSession
                               ? () => _showEndSessionDialog()
                               : (timeLogProvider.hasDutyStartedToday &&
-                                      !timeLogProvider.isDutyCompletedToday)
-                                  ? () async {
-                                      final lastId = timeLogProvider.lastLogId;
-                                      if (lastId != null) {
-                                        final success =
-                                            await timeLogProvider.resumeSession(lastId);
-                                        if (context.mounted && success) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Session resumed!'),
-                                              backgroundColor: AppColors.success,
-                                            ),
-                                          );
-                                          await _loadDashboardData();
-                                        }
-                                      } else {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                                'No previous session to resume found.'),
-                                            backgroundColor: AppColors.error,
-                                          ),
-                                        );
-                                      }
+                                    !timeLogProvider.isDutyCompletedToday)
+                              ? () async {
+                                  final lastId = timeLogProvider.lastLogId;
+                                  if (lastId != null) {
+                                    final success = await timeLogProvider
+                                        .resumeSession(lastId);
+                                    if (context.mounted && success) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Session resumed!'),
+                                          backgroundColor: AppColors.success,
+                                        ),
+                                      );
+                                      await _loadDashboardData();
                                     }
-                                  : null,
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'No previous session to resume found.',
+                                        ),
+                                        backgroundColor: AppColors.error,
+                                      ),
+                                    );
+                                  }
+                                }
+                              : null,
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
                               color: hasActiveSession
                                   ? AppColors.warning
                                   : (timeLogProvider.hasDutyStartedToday &&
-                                          !timeLogProvider.isDutyCompletedToday
-                                      ? AppColors.success
-                                      : Colors.grey),
+                                            !timeLogProvider
+                                                .isDutyCompletedToday
+                                        ? AppColors.success
+                                        : Colors.grey),
                             ),
                             foregroundColor: hasActiveSession
                                 ? AppColors.warning
                                 : (timeLogProvider.hasDutyStartedToday &&
-                                        !timeLogProvider.isDutyCompletedToday
-                                    ? AppColors.success
-                                    : Colors.grey),
+                                          !timeLogProvider.isDutyCompletedToday
+                                      ? AppColors.success
+                                      : Colors.grey),
                             padding: EdgeInsets.zero,
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                  hasActiveSession
-                                      ? Icons.pause
-                                      : Icons.play_arrow,
-                                  size: 20),
+                                hasActiveSession
+                                    ? Icons.pause
+                                    : Icons.play_arrow,
+                                size: 20,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 hasActiveSession ? 'Pause' : 'Resume',
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),
@@ -1522,32 +1729,37 @@ class _HRDashboardState extends State<HRDashboard> {
                       // END DUTY BUTTON
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: (hasActiveSession ||
+                          onPressed:
+                              (hasActiveSession ||
                                   (timeLogProvider.hasDutyStartedToday &&
                                       !timeLogProvider.isDutyCompletedToday))
                               ? () => _endDutyToday()
                               : null,
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
-                              color: (hasActiveSession ||
+                              color:
+                                  (hasActiveSession ||
                                       (timeLogProvider.hasDutyStartedToday &&
-                                          !timeLogProvider.isDutyCompletedToday))
+                                          !timeLogProvider
+                                              .isDutyCompletedToday))
                                   ? AppColors.error
                                   : Colors.grey,
                             ),
                             foregroundColor: AppColors.error,
                             padding: EdgeInsets.zero,
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                           child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.stop, size: 20),
                               SizedBox(width: 4),
-                              Text('End',
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.bold)),
+                              Text(
+                                'End',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
                             ],
                           ),
                         ),
@@ -1635,61 +1847,58 @@ class _HRDashboardState extends State<HRDashboard> {
   }
 
   void _showEndSessionDialog() {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('End Session'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('Select reason for ending session:'),
-          const SizedBox(height: 16),
-          ListTile(
-            title: const Text('Lunch Break'),
-            leading: const Icon(Icons.restaurant),
-            onTap: () {
-              Navigator.pop(context); // close dialog
-              _endSession('lunch', context);
-            },
-          ),
-          ListTile(
-            title: const Text('Prayer Break'),
-            leading: const Icon(Icons.mosque),
-            onTap: () {
-              Navigator.pop(context); // close dialog
-              _endSession('prayer', context);
-            },
-          ),
-          ListTile(
-            title: const Text('Short Leave'),
-            leading: const Icon(Icons.schedule),
-            onTap: () async {
-              Navigator.pop(context); // close dialog
-              await _endSessionAndApplyShortLeave();
-            },
-          ),
-          ListTile(
-            title: const Text('Other'),
-            leading: const Icon(Icons.more_horiz),
-            onTap: () {
-              Navigator.pop(context); // close dialog
-              _showCustomReasonDialog();
-            },
-          ),
-        ],
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('End Session'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Select reason for ending session:'),
+            const SizedBox(height: 16),
+            ListTile(
+              title: const Text('Lunch Break'),
+              leading: const Icon(Icons.restaurant),
+              onTap: () {
+                Navigator.pop(context); // close dialog
+                _endSession('lunch', context);
+              },
+            ),
+            ListTile(
+              title: const Text('Prayer Break'),
+              leading: const Icon(Icons.mosque),
+              onTap: () {
+                Navigator.pop(context); // close dialog
+                _endSession('prayer', context);
+              },
+            ),
+            ListTile(
+              title: const Text('Short Leave'),
+              leading: const Icon(Icons.schedule),
+              onTap: () async {
+                Navigator.pop(context); // close dialog
+                await _endSessionAndApplyShortLeave();
+              },
+            ),
+            ListTile(
+              title: const Text('Other'),
+              leading: const Icon(Icons.more_horiz),
+              onTap: () {
+                Navigator.pop(context); // close dialog
+                _showCustomReasonDialog();
+              },
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   void _endDutyToday() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Row(
           children: [
             Icon(Icons.stop_circle, color: AppColors.error),
@@ -1808,19 +2017,18 @@ class _HRDashboardState extends State<HRDashboard> {
     if (success) {
       // ONLY end session if leave application succeeds
       await timeLogProvider.endSession(endReason: 'short_leave');
-      
+
       scaffoldMessenger.showSnackBar(
         const SnackBar(
-          content: Text(
-            'Session ended and short leave applied successfully!',
-          ),
+          content: Text('Session ended and short leave applied successfully!'),
           backgroundColor: AppColors.success,
         ),
       );
       await _loadDashboardData();
       await authProvider.refreshUserData();
     } else {
-      final errorMessage = leaveProvider.errorMessage ?? 'Failed to apply leave';
+      final errorMessage =
+          leaveProvider.errorMessage ?? 'Failed to apply leave';
       scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text(errorMessage.replaceAll('Exception: ', '')),

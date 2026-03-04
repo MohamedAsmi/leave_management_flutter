@@ -11,6 +11,8 @@ on:
       - '.github/repository-settings.yml'
       - 'DISABLE_CODESPACES.md'
       - 'CI_CD_SETUP.md'
+      - '.codespaces-disabled'
+      - 'analyze*.txt'
   pull_request:
     branches: [ main, master ]
     paths-ignore:

@@ -1,6 +1,10 @@
 {
   "name": "Flutter Development",
-  "image": "mcr.microsoft.com/devcontainers/dart:dev",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
   "customizations": {
     "vscode": {
       "extensions": [
@@ -10,6 +14,9 @@
     }
   },
   "forwardPorts": [3000, 8080],
-  "postCreateCommand": "curl -fsSL https://flutter.dev/releases/2024/linux-x64/flutter_linux_3.19.0-stable.tar.xz | tar -xJ -C /tmp && sudo mv /tmp/flutter /opt/flutter && echo 'export PATH=/opt/flutter/bin:$PATH' >> ~/.bashrc",
-  "remoteUser": "vscode"
+  "postCreateCommand": "bash -c 'wget -qO- https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.19.0-stable.tar.xz | tar xJ -C /tmp && sudo mv /tmp/flutter /opt/flutter && echo export PATH=/opt/flutter/bin:\\$PATH >> ~/.bashrc && export PATH=/opt/flutter/bin:\\$PATH && flutter doctor'",
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=flutter-cache,target=/opt/flutter,type=volume"
+  ]
 }

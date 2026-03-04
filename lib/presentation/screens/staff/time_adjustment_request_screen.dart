@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:leave_management/core/constants/colors.dart';
 import 'package:leave_management/providers/time_adjustment_provider.dart';
+import 'package:flutter/cupertino.dart';
+
 
 class TimeAdjustmentRequestScreen extends StatefulWidget {
   const TimeAdjustmentRequestScreen({super.key});
@@ -39,25 +41,62 @@ class _TimeAdjustmentRequestScreenState
     }
   }
 
-  Future<void> _pickStartTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedStartTime ?? const TimeOfDay(hour: 9, minute: 0),
-    );
-    if (picked != null) {
-      setState(() => _selectedStartTime = picked);
-    }
-  }
+Future<void> _pickStartTime() async {
+  await showCupertinoModalPopup(
+    context: context,
+    builder: (BuildContext context) {
+      return Container(
+        height: 250,
+        color: Colors.white,
+        child: CupertinoDatePicker(
+          mode: CupertinoDatePickerMode.time,
+          initialDateTime: DateTime(
+            0,
+            0,
+            0,
+            _selectedStartTime?.hour ?? 9,
+            _selectedStartTime?.minute ?? 0,
+          ),
+          use24hFormat: false,
+          onDateTimeChanged: (DateTime newDateTime) {
+            setState(() {
+              _selectedStartTime = TimeOfDay.fromDateTime(newDateTime);
+            });
+          },
+        ),
+      );
+    },
+  );
+}
 
-  Future<void> _pickEndTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedEndTime ?? const TimeOfDay(hour: 18, minute: 0),
-    );
-    if (picked != null) {
-      setState(() => _selectedEndTime = picked);
-    }
-  }
+Future<void> _pickEndTime() async {
+  await showCupertinoModalPopup(
+    context: context,
+    builder: (BuildContext context) {
+      return Container(
+        height: 250,
+        color: Colors.white,
+        child: CupertinoDatePicker(
+          mode: CupertinoDatePickerMode.time,
+          initialDateTime: DateTime(
+            0,
+            0,
+            0,
+            _selectedEndTime?.hour ?? 18,
+            _selectedEndTime?.minute ?? 0,
+          ),
+          use24hFormat: false,
+          onDateTimeChanged: (DateTime newDateTime) {
+            setState(() {
+              _selectedEndTime = TimeOfDay.fromDateTime(newDateTime);
+            });
+          },
+        ),
+      );
+    },
+  );
+}
+
 
   String _formatTimeOfDay(TimeOfDay time) {
     final now = DateTime.now();

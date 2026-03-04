@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Environment switcher backup files
+*.bak
+lib/core/config/environment.dart.bak

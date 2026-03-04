@@ -1,0 +1,135 @@
+name: Flutter Web CI/CD
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.10.3'
+        channel: 'stable'
+
+    - name: Cache Flutter dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.pub-cache
+          .dart_tool/
+        key: flutter-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
+        restore-keys: |
+          flutter-${{ runner.os }}-
+
+    - name: Get Flutter dependencies
+      run: flutter pub get
+
+    - name: Run tests
+      run: flutter test
+
+    - name: Analyze code
+      run: flutter analyze
+
+    - name: Build Flutter web (production)
+      run: |
+        # Set production environment in the environment.dart file
+        sed -i 's/Environment.development/Environment.production/' lib/core/config/environment.dart
+        flutter build web --release --base-href /leave-app/
+
+    - name: Prepare deployment files
+      run: |
+        # Create deployment directory
+        mkdir -p deploy
+        
+        # Copy built web files to deploy directory
+        cp -r build/web/* deploy/
+        
+        # Create deployment script
+        cat > deploy_script.sh << 'EOF'
+        #!/bin/bash
+        set -e
+        
+        echo "Starting deployment..."
+        
+        # Navigate to web directory
+        cd /var/www/html/leave_management/leave_management_flutter/
+        
+        # Backup current deployment
+        if [ -d "backup" ]; then
+          rm -rf backup
+        fi
+        
+        if [ "$(ls -A . 2>/dev/null)" ]; then
+          mkdir -p backup
+          mv * backup/ 2>/dev/null || true
+        fi
+        
+        echo "Deployment completed successfully!"
+        EOF
+        
+        chmod +x deploy_script.sh
+
+    - name: Deploy to server
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        password: ${{ secrets.PASSWORD }}
+        port: 22
+        script: |
+          # Create deployment directory if it doesn't exist
+          mkdir -p /var/www/html/leave_management/leave_management_flutter/
+          
+          # Navigate to deployment directory
+          cd /var/www/html/leave_management/leave_management_flutter/
+          
+          # Backup current files
+          if [ -d "backup" ]; then
+            rm -rf backup
+          fi
+          
+          if [ "$(ls -A . 2>/dev/null)" ]; then
+            mkdir -p backup
+            mv * backup/ 2>/dev/null || true
+          fi
+          
+          echo "Prepared for file upload..."
+
+    - name: Upload files to server
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        password: ${{ secrets.PASSWORD }}
+        port: 22
+        source: "build/web/*"
+        target: "/var/www/html/leave_management/leave_management_flutter/"
+        strip_components: 2
+
+    - name: Set proper permissions
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        password: ${{ secrets.PASSWORD }}
+        port: 22
+        script: |
+          # Set proper permissions
+          cd /var/www/html/leave_management/leave_management_flutter/
+          chown -R www-data:www-data .
+          find . -type f -exec chmod 644 {} \;
+          find . -type d -exec chmod 755 {} \;
+          
+          echo "Deployment completed successfully!"

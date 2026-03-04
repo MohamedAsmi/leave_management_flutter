@@ -1214,18 +1214,42 @@ class _HRDashboardState extends State<HRDashboard> {
     );
   }
 
+  // Helper method to get total working hours for a user today
+  Duration _calculateUserTodayWorkingHours(List<TimeLogModel> allLogs, int userId) {
+    final today = DateTime.now();
+    final todayUserLog = allLogs.firstWhere(
+      (log) {
+        if (log.startTime == null || log.userId != userId) return false;
+        return DateFormat('yyyy-MM-dd').format(log.startTime!) ==
+            DateFormat('yyyy-MM-dd').format(today);
+      },
+      orElse: () => TimeLogModel(id: 0, userId: userId, userName: '', date: today),
+    );
+
+    // Use the totalDuration from API if available, otherwise return zero
+    return todayUserLog.totalDuration ?? Duration.zero;
+  }
+
   Widget _buildTeamAttendance() {
     return Consumer<TimeLogProvider>(
       builder: (context, provider, _) {
+        final today = DateTime.now();
         final todayLogs = provider.allTimeLogs
             .where((log) {
               if (log.startTime == null) return false;
-              final today = DateTime.now();
               return DateFormat('yyyy-MM-dd').format(log.startTime!) ==
                   DateFormat('yyyy-MM-dd').format(today);
             })
-            .take(5)
             .toList();
+
+        // Group users by unique user ID to avoid duplicates
+        final Map<int, TimeLogModel> uniqueUsers = {};
+        for (final log in todayLogs) {
+          if (!uniqueUsers.containsKey(log.userId)) {
+            uniqueUsers[log.userId] = log;
+          }
+        }
+        final displayLogs = uniqueUsers.values.take(5).toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1249,7 +1273,7 @@ class _HRDashboardState extends State<HRDashboard> {
             const SizedBox(height: 12),
             if (provider.isLoading)
               const Center(child: CircularProgressIndicator())
-            else if (todayLogs.isEmpty)
+            else if (displayLogs.isEmpty)
               InkWell(
                 onTap: () {
                   context.push('/hr/today-attendance');
@@ -1302,17 +1326,15 @@ class _HRDashboardState extends State<HRDashboard> {
                       ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: todayLogs.length,
+                        itemCount: displayLogs.length,
                         separatorBuilder: (_, __) =>
                             Divider(height: 1, color: AppColors.border),
                         itemBuilder: (context, index) {
-                          final log = todayLogs[index];
-                          final isActive = log.endTime == null;
-                          final duration = log.endTime != null
-                              ? log.endTime!.difference(log.startTime!)
-                              : DateTime.now().difference(log.startTime!);
-                          final hours = duration.inHours;
-                          final minutes = duration.inMinutes.remainder(60);
+                          final log = displayLogs[index];
+                          // Check if this user has any active session today
+                          final hasActiveSession = todayLogs.any((l) => l.userId == log.userId && l.endTime == null);
+                          // Use the total duration from the log (already calculated by API)
+                          final totalDuration = log.totalDuration ?? Duration.zero;
 
                           // Get color based on end reason
                           Color getEndReasonColor(String? reason) {
@@ -1356,14 +1378,14 @@ class _HRDashboardState extends State<HRDashboard> {
 
                           return ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: isActive
+                              backgroundColor: hasActiveSession
                                   ? AppColors.success.withOpacity(0.1)
                                   : getEndReasonColor(
                                       log.endReason,
                                     ).withOpacity(0.1),
                               child: Icon(
-                                isActive ? Icons.work : Icons.work_off,
-                                color: isActive
+                                hasActiveSession ? Icons.work : Icons.work_off,
+                                color: hasActiveSession
                                     ? AppColors.success
                                     : getEndReasonColor(log.endReason),
                                 size: 20,
@@ -1393,7 +1415,7 @@ class _HRDashboardState extends State<HRDashboard> {
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: isActive
+                                    color: hasActiveSession
                                         ? AppColors.success.withOpacity(0.1)
                                         : getEndReasonColor(
                                             log.endReason,
@@ -1401,14 +1423,14 @@ class _HRDashboardState extends State<HRDashboard> {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
-                                    isActive
+                                    hasActiveSession
                                         ? 'Active'
                                         : getEndReasonLabel(
                                             log.endReason,
                                             log.customReason,
                                           ),
                                     style: TextStyle(
-                                      color: isActive
+                                      color: hasActiveSession
                                           ? AppColors.success
                                           : getEndReasonColor(log.endReason),
                                       fontSize: 11,
@@ -1418,7 +1440,7 @@ class _HRDashboardState extends State<HRDashboard> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '${hours}h ${minutes}m',
+                                  DateTimeUtils.durationToString(totalDuration),
                                   style: TextStyle(
                                     color: AppColors.textSecondary,
                                     fontSize: 12,

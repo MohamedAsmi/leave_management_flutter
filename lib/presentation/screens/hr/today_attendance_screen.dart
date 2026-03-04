@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/utils/date_time_utils.dart';
 import 'package:leave_management/providers/time_log_provider.dart';
 
 class TodayAttendanceScreen extends StatefulWidget {
@@ -346,11 +347,8 @@ class _TodayAttendanceScreenState extends State<TodayAttendanceScreen> {
 
   Widget _buildAttendanceCard(log) {
     final isActive = log.endTime == null;
-    final duration = log.endTime != null
-        ? log.endTime!.difference(log.startTime!)
-        : DateTime.now().difference(log.startTime!);
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
+    // Use the total duration from API instead of calculating manually
+    final totalDuration = log.totalDuration ?? Duration.zero;
 
     // Get color based on end reason
     Color getEndReasonColor(String? reason) {
@@ -510,7 +508,7 @@ class _TodayAttendanceScreenState extends State<TodayAttendanceScreen> {
                   Expanded(
                     child: _buildTimeInfo(
                       'Duration',
-                      '${hours}h ${minutes}m',
+                      DateTimeUtils.durationToString(totalDuration),
                       Icons.timer,
                       AppColors.primary,
                     ),

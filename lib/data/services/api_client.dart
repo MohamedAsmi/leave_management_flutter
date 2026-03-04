@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:leave_management/core/constants/app_constants.dart';
 import 'package:leave_management/data/services/storage_service.dart';
 import 'package:logger/logger.dart';
@@ -33,7 +34,10 @@ class ApiClient {
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
           }
-          print('FULL URL BEING CALLED: ${options.uri}');
+          // Debug logging (only in debug mode)
+          if (kDebugMode) {
+            print('FULL URL BEING CALLED: ${options.uri}');
+          }
 
           _logger.d('Request: ${options.method} ${options.uri}');
           _logger.d('Headers: ${options.headers}');
@@ -98,7 +102,9 @@ class ApiClient {
         queryParameters: queryParameters,
         options: options,
       );
-      print(path);
+      if (kDebugMode) {
+        print(path);
+      }
       return response;
     } on DioException catch (e) {
       throw _handleError(e);
@@ -207,7 +213,9 @@ class ApiClient {
         }
         return Exception(data['message'] ?? 'Validation error');
       case 500:
-        print('SERVER CRASH DATA: ${response.data}'); 
+        if (kDebugMode) {
+          print('SERVER CRASH DATA: ${response.data}');
+        } 
         return Exception('Server error. Please try again later.');
         // return Exception('Server error. Please try again later.');
       default:

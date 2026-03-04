@@ -1,19 +1,24 @@
 import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:logger/logger.dart';
 
 // Top-level function to handle background messages
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  print('Handling background message: ${message.messageId}');
+  if (kDebugMode) {
+    print('Handling background message: ${message.messageId}');
+  }
   // Handle background notification here
 }
 
 // Top-level function to handle notification taps
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse response) {
-  print('Notification tapped in background: ${response.payload}');
+  if (kDebugMode) {
+    print('Notification tapped in background: ${response.payload}');
+  }
   // Handle navigation based on payload
 }
 
@@ -32,7 +37,9 @@ class FirebaseMessagingService {
 
   // Static callback for notification taps
   static void onNotificationTap(NotificationResponse response) {
-    print('Notification tapped: ${response.payload}');
+    if (kDebugMode) {
+      print('Notification tapped: ${response.payload}');
+    }
     // TODO: Handle navigation based on payload
   }
 

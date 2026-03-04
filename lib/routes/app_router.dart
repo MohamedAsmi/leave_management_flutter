@@ -29,7 +29,7 @@ import 'package:leave_management/presentation/screens/common/notifications_scree
 
 import 'package:leave_management/presentation/screens/hr/time_adjustment_approval_screen.dart';
 import 'package:leave_management/presentation/screens/hr/hr_apply_leave_screen.dart';
-import 'package:leave_management/presentation/screens/hr/HRTimeTracking_screen.dart';
+import 'package:leave_management/presentation/screens/hr/hr_time_tracking_screen.dart';
 import 'package:leave_management/presentation/screens/staff/my_time_adjustments_screen.dart';
 import 'package:leave_management/presentation/screens/staff/time_adjustment_request_screen.dart';
 

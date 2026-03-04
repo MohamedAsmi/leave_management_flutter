@@ -51,7 +51,9 @@ class NotificationProvider with ChangeNotifier {
     try {
       await _notificationService.saveFCMToken(token);
     } catch (e) {
-      print('Error sending FCM token to backend: $e');
+      if (kDebugMode) {
+        print('Error sending FCM token to backend: $e');
+      }
     }
   }
 
@@ -63,7 +65,9 @@ class NotificationProvider with ChangeNotifier {
         await _fcmService?.deleteToken();
         _fcmToken = null;
       } catch (e) {
-        print('Error deleting FCM token: $e');
+        if (kDebugMode) {
+          print('Error deleting FCM token: $e');
+        }
       }
     }
   }

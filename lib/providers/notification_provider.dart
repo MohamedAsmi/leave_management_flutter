@@ -1,22 +1,87 @@
 import 'package:flutter/foundation.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:leave_management/data/models/notification_model.dart';
 import 'package:leave_management/data/services/notification_service.dart';
+import 'package:leave_management/data/services/firebase_messaging_service.dart';
+import 'dart:async';
 
 class NotificationProvider with ChangeNotifier {
   final NotificationService _notificationService;
+  final FirebaseMessagingService? _fcmService;
 
   List<NotificationModel> _notifications = [];
   int _unreadCount = 0;
   bool _isLoading = false;
   String? _errorMessage;
+  String? _fcmToken;
+  StreamSubscription<RemoteMessage>? _messageSubscription;
 
-  NotificationProvider(this._notificationService);
+  NotificationProvider(this._notificationService, [this._fcmService]) {
+    _initializeFCM();
+  }
 
   List<NotificationModel> get notifications => _notifications;
   int get unreadCount => _unreadCount;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get hasUnreadNotifications => _unreadCount > 0;
+  String? get fcmToken => _fcmToken;
+
+  // Initialize FCM
+  void _initializeFCM() {
+    if (_fcmService != null) {
+      _fcmToken = _fcmService.fcmToken;
+      
+      // Send token to backend
+      if (_fcmToken != null) {
+        _sendTokenToBackend(_fcmToken!);
+      }
+      
+      // Listen to messages
+      _messageSubscription = _fcmService.messageStream.listen((message) {
+        // When a new message arrives, refresh notifications
+        fetchNotifications();
+        fetchUnreadCount();
+      });
+    }
+  }
+
+  // Send FCM token to backend
+  Future<void> _sendTokenToBackend(String token) async {
+    try {
+      await _notificationService.saveFCMToken(token);
+    } catch (e) {
+      print('Error sending FCM token to backend: $e');
+    }
+  }
+
+  // Delete FCM token from backend
+  Future<void> deleteFCMToken() async {
+    if (_fcmToken != null) {
+      try {
+        await _notificationService.deleteFCMToken(_fcmToken!);
+        await _fcmService?.deleteToken();
+        _fcmToken = null;
+      } catch (e) {
+        print('Error deleting FCM token: $e');
+      }
+    }
+  }
+
+  // Get FCM Token
+  String? getFCMToken() {
+    return _fcmService?.fcmToken;
+  }
+
+  // Subscribe to FCM topics
+  Future<void> subscribeToTopic(String topic) async {
+    await _fcmService?.subscribeToTopic(topic);
+  }
+
+  // Unsubscribe from FCM topics
+  Future<void> unsubscribeFromTopic(String topic) async {
+    await _fcmService?.unsubscribeFromTopic(topic);
+  }
 
   // Get All Notifications
   Future<void> fetchNotifications({bool? isRead}) async {
@@ -130,5 +195,11 @@ class NotificationProvider with ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _messageSubscription?.cancel();
+    super.dispose();
   }
 }

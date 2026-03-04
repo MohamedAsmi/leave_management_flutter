@@ -72,23 +72,24 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              if (provider.notifications.isEmpty) {
-                return const Center(child: Text('No notifications'));
+              // Filter to show only unread notifications
+              final unreadNotifications = provider.notifications
+                  .where((n) => !n.isRead)
+                  .toList();
+
+              if (unreadNotifications.isEmpty) {
+                return const Center(child: Text('No unread notifications'));
               }
 
               return ListView.builder(
-                itemCount: provider.notifications.length,
+                itemCount: unreadNotifications.length,
                 itemBuilder: (context, index) {
-                  final notification = provider.notifications[index];
+                  final notification = unreadNotifications[index];
                   return Card(
-                    color: notification.isRead
-                        ? null
-                        : AppColors.info.withOpacity(0.1),
+                    color: AppColors.info.withOpacity(0.1),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: notification.isRead
-                            ? Colors.grey
-                            : AppColors.primary,
+                        backgroundColor: AppColors.primary,
                         child: Icon(
                           _getNotificationIcon(notification.type),
                           color: Colors.white,
@@ -97,10 +98,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       ),
                       title: Text(
                         notification.title,
-                        style: TextStyle(
-                          fontWeight: notification.isRead
-                              ? FontWeight.normal
-                              : FontWeight.bold,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       subtitle: Column(
@@ -123,6 +122,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         if (!notification.isRead) {
                           await provider.markAsRead(notification.id);
                         }
+                        // Close the dialog
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          
+                          // Navigate based on notification type
+                          _handleNotificationNavigation(notification.type);
+                        }
                       },
                     ),
                   );
@@ -139,6 +145,24 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ],
       ),
     );
+  }
+
+  void _handleNotificationNavigation(String type) {
+    switch (type.toLowerCase()) {
+      case 'leave_application':
+      case 'leave_approval':
+      case 'leave_rejection':
+        // Admin can navigate to admin dashboard or create a leave approval screen for admin
+        // For now, just stay on dashboard
+        break;
+      case 'time_management':
+      case 'time_adjustment':
+        // Navigate to time tracking or create admin time adjustment screen
+        break;
+      default:
+        // Do nothing for unknown types
+        break;
+    }
   }
 
   IconData _getNotificationIcon(String type) {

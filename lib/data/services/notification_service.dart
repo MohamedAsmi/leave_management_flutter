@@ -49,4 +49,19 @@ class NotificationService {
   Future<void> clearAllNotifications() async {
     await _apiClient.delete('/notifications/clear-all');
   }
+
+  // Send FCM Token to Backend
+  Future<void> saveFCMToken(String token) async {
+    await _apiClient.post('/fcm-token', data: {
+      'token': token,
+      'device_type': 'mobile', // or get from platform
+    });
+  }
+
+  // Delete FCM Token from Backend
+  Future<void> deleteFCMToken(String token) async {
+    await _apiClient.delete('/fcm-token', data: {
+      'token': token,
+    });
+  }
 }

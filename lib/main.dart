@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'firebase_options.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:leave_management/core/theme/app_theme.dart';
@@ -7,6 +10,7 @@ import 'package:leave_management/data/services/auth_service.dart';
 import 'package:leave_management/data/services/leave_service.dart';
 import 'package:leave_management/data/services/time_log_service.dart';
 import 'package:leave_management/data/services/notification_service.dart';
+import 'package:leave_management/data/services/firebase_messaging_service.dart';
 import 'package:leave_management/data/services/storage_service.dart';
 import 'package:leave_management/data/services/user_service.dart';
 import 'package:leave_management/data/services/project_service.dart';
@@ -27,6 +31,14 @@ import 'package:leave_management/providers/duty_type_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Set up background message handler
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
   // Initialize Hive
   await Hive.initFlutter();
   Hive.registerAdapter(DutyTypeAdapter());
@@ -42,6 +54,8 @@ void main() async {
   final leaveService = LeaveService(apiClient);
   final timeLogService = TimeLogService(apiClient);
   final notificationService = NotificationService(apiClient);
+  final firebaseMessagingService = FirebaseMessagingService();
+  await firebaseMessagingService.initialize();
   final userService = UserService(apiClient);
   final dutyTypeService = DutyTypeService(apiClient);
   final projectService = ProjectService(apiClient);
@@ -61,6 +75,7 @@ void main() async {
         Provider<LeaveService>.value(value: leaveService),
         Provider<TimeLogService>.value(value: timeLogService),
         Provider<NotificationService>.value(value: notificationService),
+        Provider<FirebaseMessagingService>.value(value: firebaseMessagingService),
         Provider<UserService>.value(value: userService),
         Provider<ProjectService>.value(value: projectService),
         Provider<DutyTypeService>.value(value: dutyTypeService),
@@ -74,7 +89,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => LeaveProvider(leaveService)),
         ChangeNotifierProvider(create: (_) => TimeLogProvider(timeLogService)),
         ChangeNotifierProvider(
-          create: (_) => NotificationProvider(notificationService),
+          create: (_) => NotificationProvider(notificationService, firebaseMessagingService),
         ),
         ChangeNotifierProvider(create: (_) => UserProvider(userService)),
         ChangeNotifierProvider(

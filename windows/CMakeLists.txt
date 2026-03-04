@@ -1,5 +1,17 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
+
+# Set policy to handle older CMake versions in dependencies
+set(CMAKE_POLICY_DEFAULT_CMP0000 NEW)
+# Force minimum CMake version for all subdirectories
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+
+# Set environment variable that CMake will use
+set(ENV{CMAKE_POLICY_VERSION_MINIMUM} "3.5")
+
+# Suppress deprecation warnings from dependencies
+set(CMAKE_WARN_DEPRECATED OFF)
+
 project(leave_management LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change

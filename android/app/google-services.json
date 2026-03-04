@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "173145337411",
+    "project_id": "leaves-c2bec",
+    "storage_bucket": "leaves-c2bec.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:173145337411:android:6926841e03c77b5015eef6",
+        "android_client_info": {
+          "package_name": "com.example.leave_management"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXeYZ-nfyw-l6qxkmVebbskSUsizpHRbY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

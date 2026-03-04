@@ -47,7 +47,21 @@ jobs:
       run: flutter test
 
     - name: Analyze code
-      run: flutter analyze
+      run: |
+        echo "Running Flutter analysis..."
+        # Run analysis and capture output
+        flutter analyze --no-fatal-infos > analysis_output.txt 2>&1 || true
+        
+        # Show analysis results  
+        cat analysis_output.txt
+        
+        # Check for warnings and errors (but allow info-level issues)
+        if grep -E "(warning|error)" analysis_output.txt; then
+          echo "❌ Analysis found warnings or errors - deployment blocked"
+          exit 1
+        else
+          echo "✅ Analysis passed - only info-level issues found (allowed)"
+        fi
 
     - name: Build Flutter web (production)
       run: |

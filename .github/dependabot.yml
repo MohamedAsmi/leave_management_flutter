@@ -1,0 +1,9 @@
+# Disable Dependabot to reduce notifications and automated PRs
+version: 2
+updates: []
+# To re-enable in the future, uncomment and configure:
+# updates:
+#   - package-ecosystem: "pub"
+#     directory: "/"
+#     schedule:
+#       interval: "monthly"

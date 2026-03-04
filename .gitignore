@@ -47,3 +47,12 @@ app.*.map.json
 # Environment switcher backup files
 *.bak
 lib/core/config/environment.dart.bak
+
+# Codespaces and GitHub artifacts
+.devcontainer/.vscode/
+.github/codespaces/
+**/.vscode-server/
+**/.vscode-server-insiders/
+
+# Dependabot cache
+.dependabot/

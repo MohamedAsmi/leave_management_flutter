@@ -3,8 +3,25 @@ name: Flutter Web CI/CD
 on:
   push:
     branches: [ main, master ]
+    paths:
+      - 'lib/**'
+      - 'web/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - '.github/workflows/**'
+    # Ignore Codespaces and documentation changes
+    paths-ignore:
+      - '**.md'
+      - '.devcontainer/**'
+      - '.github/dependabot.yml'
+      - '.github/repository-settings.yml'
   pull_request:
     branches: [ main, master ]
+    paths:
+      - 'lib/**'
+      - 'web/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
 
 jobs:
   build-and-deploy:

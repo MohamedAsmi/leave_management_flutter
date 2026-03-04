@@ -30,7 +30,7 @@ class NotificationProvider with ChangeNotifier {
   // Initialize FCM
   void _initializeFCM() {
     if (_fcmService != null) {
-      _fcmToken = _fcmService.fcmToken;
+      _fcmToken = _fcmService?.fcmToken;
       
       // Send token to backend
       if (_fcmToken != null) {
@@ -38,7 +38,7 @@ class NotificationProvider with ChangeNotifier {
       }
       
       // Listen to messages
-      _messageSubscription = _fcmService.messageStream.listen((message) {
+      _messageSubscription = _fcmService?.messageStream.listen((message) {
         // When a new message arrives, refresh notifications
         fetchNotifications();
         fetchUnreadCount();

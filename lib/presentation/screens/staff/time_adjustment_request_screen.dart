@@ -75,27 +75,45 @@ class _TimeAdjustmentRequestScreenState
   }
 
 Future<void> _pickStartTime() async {
+  TimeOfDay tempPickedTime = _selectedStartTime ?? TimeOfDay.fromDateTime(DateTime.now());
   await showCupertinoModalPopup(
     context: context,
     builder: (BuildContext context) {
       return Container(
-        height: 250,
+        height: 300,
         color: Colors.white,
-        child: CupertinoDatePicker(
-          mode: CupertinoDatePickerMode.time,
-          initialDateTime: DateTime(
-            0,
-            0,
-            0,
-            _selectedStartTime?.hour ?? 9,
-            _selectedStartTime?.minute ?? 0,
-          ),
-          use24hFormat: false,
-          onDateTimeChanged: (DateTime newDateTime) {
-            setState(() {
-              _selectedStartTime = TimeOfDay.fromDateTime(newDateTime);
-            });
-          },
+        child: Column(
+          children: [
+            // Done button
+            SizedBox(
+              height: 50,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    child: const Text("Done"),
+                    onPressed: () { // ✅ Commit the last value (even if not scrolled) 
+                    setState(() => _selectedStartTime = tempPickedTime); 
+                    Navigator.of(context).pop(); 
+                    },
+                  ),
+                ],
+              ),
+            ),
+            // Cupertino time picker
+            Expanded(
+              child: CupertinoDatePicker(
+                mode: CupertinoDatePickerMode.time,
+                initialDateTime: DateTime.now(), // ✅ current time
+                use24hFormat: false,
+                onDateTimeChanged: (DateTime newDateTime) {
+                  setState(() {
+                    _selectedStartTime = TimeOfDay.fromDateTime(newDateTime);
+                  });
+                },
+              ),
+            ),
+          ],
         ),
       );
     },
@@ -103,27 +121,45 @@ Future<void> _pickStartTime() async {
 }
 
 Future<void> _pickEndTime() async {
+  TimeOfDay tempPickedTime = _selectedEndTime ?? TimeOfDay.fromDateTime(DateTime.now());
   await showCupertinoModalPopup(
     context: context,
     builder: (BuildContext context) {
       return Container(
-        height: 250,
+        height: 300,
         color: Colors.white,
-        child: CupertinoDatePicker(
-          mode: CupertinoDatePickerMode.time,
-          initialDateTime: DateTime(
-            0,
-            0,
-            0,
-            _selectedEndTime?.hour ?? 18,
-            _selectedEndTime?.minute ?? 0,
-          ),
-          use24hFormat: false,
-          onDateTimeChanged: (DateTime newDateTime) {
-            setState(() {
-              _selectedEndTime = TimeOfDay.fromDateTime(newDateTime);
-            });
-          },
+        child: Column(
+          children: [
+            // Done button
+            SizedBox(
+              height: 50,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    child: const Text("Done"),
+                    onPressed: () { 
+                      setState(() => _selectedEndTime = tempPickedTime); 
+                      Navigator.of(context).pop(); 
+                      },
+                  ),
+                ],
+              ),
+            ),
+            // Cupertino time picker
+            Expanded(
+              child: CupertinoDatePicker(
+                mode: CupertinoDatePickerMode.time,
+                initialDateTime: DateTime.now(), // ✅ current time
+                use24hFormat: false,
+                onDateTimeChanged: (DateTime newDateTime) {
+                  setState(() {
+                    _selectedStartTime = TimeOfDay.fromDateTime(newDateTime);
+                  });
+                },
+              ),
+            ),
+          ],
         ),
       );
     },
@@ -131,6 +167,17 @@ Future<void> _pickEndTime() async {
 }
 
 
+
+bool _isTimeInFuture(DateTime date, TimeOfDay time) {
+    final dateTime = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    return dateTime.isAfter(DateTime.now());
+  }
   String _formatTimeOfDay(TimeOfDay time) {
     final now = DateTime.now();
     final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);

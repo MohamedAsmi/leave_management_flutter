@@ -20,13 +20,20 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
   final _phoneController = TextEditingController();
   final _departmentController = TextEditingController();
   final _designationController = TextEditingController();
+  final _joinedDateController = TextEditingController();
+  final _casualLeaveController = TextEditingController();
+  final _medicalLeaveController = TextEditingController();
+  final _annualLeaveController = TextEditingController();
+  final _shortLeaveController = TextEditingController();
+  final _halfDayLeaveController = TextEditingController();
 
   String _selectedRole = 'staff';
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  DateTime? _selectedJoinedDate;
 
-  final List<String> _roles = ['staff', 'hr', 'admin'];
+  final List<String> _roles = ['staff', 'hr', 'admin', 'project_manager'];
   final List<String> _departments = [
     'Ceo',
     'Deputy Ceo',
@@ -51,6 +58,12 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
     _phoneController.dispose();
     _departmentController.dispose();
     _designationController.dispose();
+    _joinedDateController.dispose();
+    _casualLeaveController.dispose();
+    _medicalLeaveController.dispose();
+    _annualLeaveController.dispose();
+    _shortLeaveController.dispose();
+    _halfDayLeaveController.dispose();
     super.dispose();
   }
 
@@ -74,6 +87,22 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
       designation: _designationController.text.trim().isEmpty
           ? null
           : _designationController.text.trim(),
+      joinedDate: _selectedJoinedDate,
+      casualLeaveBalance: _casualLeaveController.text.trim().isEmpty
+          ? 7.0
+          : double.tryParse(_casualLeaveController.text.trim()) ?? 7.0,
+      medicalLeaveBalance: _medicalLeaveController.text.trim().isEmpty
+          ? 7.0
+          : double.tryParse(_medicalLeaveController.text.trim()) ?? 7.0,
+      annualLeaveBalance: _annualLeaveController.text.trim().isEmpty
+          ? 7.0
+          : double.tryParse(_annualLeaveController.text.trim()) ?? 7.0,
+      shortLeaveBalance: _shortLeaveController.text.trim().isEmpty
+          ? 24.0
+          : double.tryParse(_shortLeaveController.text.trim()) ?? 24.0,
+      halfDayLeaveBalance: _halfDayLeaveController.text.trim().isEmpty
+          ? 24.0
+          : double.tryParse(_halfDayLeaveController.text.trim()) ?? 24.0,
     );
 
     setState(() => _isLoading = false);
@@ -221,6 +250,70 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
                 label: 'Designation (Optional)',
                 hint: 'e.g., Senior Developer, Manager',
                 icon: Icons.work_outline,
+              ),
+              const SizedBox(height: 16),
+              _buildDatePickerField(),
+              const SizedBox(height: 24),
+
+              // Leave Information Section
+              _buildSectionHeader('Leave Information'),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildLeaveBalanceField(
+                      controller: _casualLeaveController,
+                      label: 'Casual Leave',
+                      hint: '7.0',
+                      defaultValue: '7.0',
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildLeaveBalanceField(
+                      controller: _medicalLeaveController,
+                      label: 'Medical Leave',
+                      hint: '7.0',
+                      defaultValue: '7.0',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildLeaveBalanceField(
+                      controller: _annualLeaveController,
+                      label: 'Annual Leave',
+                      hint: '7.0',
+                      defaultValue: '7.0',
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildLeaveBalanceField(
+                      controller: _shortLeaveController,
+                      label: 'Short Leave',
+                      hint: '24.0',
+                      defaultValue: '24.0',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildLeaveBalanceField(
+                      controller: _halfDayLeaveController,
+                      label: 'Half Day Leave',
+                      hint: '24.0',
+                      defaultValue: '24.0',
+                    ),
+                  ),
+                  const Expanded(child: SizedBox()), // Empty space to maintain layout
+                ],
               ),
               const SizedBox(height: 24),
 
@@ -505,6 +598,8 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
         return Icons.admin_panel_settings;
       case 'hr':
         return Icons.people;
+      case 'project_manager':
+        return Icons.account_tree;
       default:
         return Icons.person;
     }
@@ -516,8 +611,130 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
         return AppColors.error;
       case 'hr':
         return AppColors.secondary;
+      case 'project_manager':
+        return Colors.purple;
       default:
         return AppColors.primary;
     }
+  }
+
+  Widget _buildDatePickerField() {
+    return InkWell(
+      onTap: () async {
+        final DateTime? pickedDate = await showDatePicker(
+          context: context,
+          initialDate: _selectedJoinedDate ?? DateTime.now(),
+          firstDate: DateTime(2000),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: ColorScheme.light(
+                  primary: AppColors.primary,
+                ),
+              ),
+              child: child!,
+            );
+          },
+        );
+        if (pickedDate != null) {
+          setState(() {
+            _selectedJoinedDate = pickedDate;
+            _joinedDateController.text = 
+                "${pickedDate.day.toString().padLeft(2, '0')}/"
+                "${pickedDate.month.toString().padLeft(2, '0')}/"
+                "${pickedDate.year}";
+          });
+        }
+      },
+      child: AbsorbPointer(
+        child: TextFormField(
+          controller: _joinedDateController,
+          decoration: InputDecoration(
+            labelText: 'Joined Date (Optional)',
+            hintText: 'Select joining date',
+            prefixIcon: const Icon(Icons.calendar_today_outlined),
+            suffixIcon: _selectedJoinedDate != null
+                ? IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      setState(() {
+                        _selectedJoinedDate = null;
+                        _joinedDateController.clear();
+                      });
+                    },
+                  )
+                : null,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
+            ),
+            filled: true,
+            fillColor: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLeaveBalanceField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required String defaultValue,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: InputDecoration(
+        labelText: '$label (Optional)',
+        hintText: hint,
+        helperText: 'Default: $defaultValue days',
+        helperStyle: TextStyle(
+          fontSize: 11,
+          color: AppColors.textSecondary,
+        ),
+        prefixIcon: const Icon(Icons.beach_access_outlined),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.error),
+        ),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+      validator: (value) {
+        if (value != null && value.trim().isNotEmpty) {
+          final doubleValue = double.tryParse(value.trim());
+          if (doubleValue == null) {
+            return 'Enter a valid number';
+          }
+          if (doubleValue < 0) {
+            return 'Cannot be negative';
+          }
+          if (doubleValue > 365) {
+            return 'Cannot exceed 365 days';
+          }
+        }
+        return null;
+      },
+    );
   }
 }

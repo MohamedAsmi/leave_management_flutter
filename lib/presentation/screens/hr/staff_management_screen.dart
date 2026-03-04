@@ -47,6 +47,8 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
         return users.where((u) => u.role == 'hr').toList();
       case 'admin':
         return users.where((u) => u.role == 'admin').toList();
+      case 'project_manager':
+        return users.where((u) => u.role == 'project_manager').toList();
       case 'active':
         return users.where((u) => u.isActive).toList();
       case 'inactive':
@@ -119,6 +121,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                       _buildFilterChip('Staff', 'staff'),
                       _buildFilterChip('HR', 'hr'),
                       _buildFilterChip('Admin', 'admin'),
+                      _buildFilterChip('Project Manager', 'project_manager'),
                       _buildFilterChip('Active', 'active'),
                       _buildFilterChip('Inactive', 'inactive'),
                     ],
@@ -446,6 +449,10 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
         color = AppColors.secondary;
         label = 'HR';
         break;
+      case 'project_manager':
+        color = Colors.purple;
+        label = 'Project Manager';
+        break;
       default:
         color = AppColors.primary;
         label = 'Staff';
@@ -504,6 +511,8 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
         return AppColors.error;
       case 'hr':
         return AppColors.secondary;
+      case 'project_manager':
+        return Colors.purple;
       default:
         return AppColors.primary;
     }

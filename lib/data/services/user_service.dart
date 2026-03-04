@@ -39,6 +39,12 @@ class UserService {
     String? phone,
     String? department,
     String? designation,
+    DateTime? joinedDate,
+    double? casualLeaveBalance,
+    double? medicalLeaveBalance,
+    double? annualLeaveBalance,
+    double? shortLeaveBalance,
+    double? halfDayLeaveBalance,
   }) async {
     final response = await _apiClient.post('/users', data: {
       'name': name,
@@ -48,6 +54,12 @@ class UserService {
       if (phone != null) 'phone': phone,
       if (department != null) 'department': department,
       if (designation != null) 'designation': designation,
+      if (joinedDate != null) 'joined_date': joinedDate.toIso8601String().split('T')[0],
+      if (casualLeaveBalance != null) 'casual_leave_balance': casualLeaveBalance,
+      if (medicalLeaveBalance != null) 'medical_leave_balance': medicalLeaveBalance,
+      if (annualLeaveBalance != null) 'annual_leave_balance': annualLeaveBalance,
+      if (shortLeaveBalance != null) 'short_leave_balance': shortLeaveBalance,
+      if (halfDayLeaveBalance != null) 'half_day_leave_balance': halfDayLeaveBalance,
     });
 
     return UserModel.fromJson(response.data['user']);

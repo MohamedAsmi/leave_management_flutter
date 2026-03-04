@@ -57,6 +57,12 @@ class UserProvider with ChangeNotifier {
     String? phone,
     String? department,
     String? designation,
+    DateTime? joinedDate,
+    double? casualLeaveBalance,
+    double? medicalLeaveBalance,
+    double? annualLeaveBalance,
+    double? shortLeaveBalance,
+    double? halfDayLeaveBalance,
   }) async {
     _isLoading = true;
     _error = null;
@@ -71,6 +77,12 @@ class UserProvider with ChangeNotifier {
         phone: phone,
         department: department,
         designation: designation,
+        joinedDate: joinedDate,
+        casualLeaveBalance: casualLeaveBalance,
+        medicalLeaveBalance: medicalLeaveBalance,
+        annualLeaveBalance: annualLeaveBalance,
+        shortLeaveBalance: shortLeaveBalance,
+        halfDayLeaveBalance: halfDayLeaveBalance,
       );
       
       // Refresh the users list

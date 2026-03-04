@@ -47,8 +47,19 @@ class ApiClient {
           return handler.next(response);
         },
         onError: (error, handler) {
-          _logger.e('Error: ${error.message}');
-          _logger.e('Response: ${error.response?.data}');
+          // Check if this is an expected 404 for active session endpoint
+          final isActiveSessionNotFound = error.response?.statusCode == 404 &&
+              error.requestOptions.path.contains('/time-logs/active') &&
+              error.response?.data != null &&
+              error.response?.data['message']?.toString().contains('No active session found') == true;
+
+          if (!isActiveSessionNotFound) {
+            _logger.e('Error: ${error.message}');
+            _logger.e('Response: ${error.response?.data}');
+          } else {
+            // Silently handle expected "no active session" 404s
+            _logger.d('No active session found (expected)');
+          }
           return handler.next(error);
         },
       ),

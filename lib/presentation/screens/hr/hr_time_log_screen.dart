@@ -101,27 +101,60 @@ class _HrTimeLogScreenState extends State<HrTimeLogScreen> {
   }
 
   void _showEditLogDialog(TimeLogModel log) {
-    final startController = TextEditingController(
-      text: log.startTime != null
-          ? DateFormat('HH:mm').format(log.startTime!.toLocal())
-          : '',
-    );
-    final endController = TextEditingController(
-      text: log.endTime != null
-          ? DateFormat('HH:mm').format(log.endTime!.toLocal())
-          : '',
-    );
-    final customReasonController = TextEditingController(
-      text: log.customReason ?? '',
-    );
+    List<Map<String, dynamic>> sessionDrafts = [];
 
-    // Determine initial dropdown value based on log state
-    String selectedAction =
-        (log.customReason != null || log.endReason == 'other')
-        ? 'Custom Reason'
-        : 'End Duty';
+    if (log.sessions.isNotEmpty) {
+      for (var session in log.sessions) {
+        sessionDrafts.add({
+          'startController': TextEditingController(
+            text: DateFormat('HH:mm').format(session.startTime.toLocal()),
+          ),
+          'endController': TextEditingController(
+            text: DateFormat('HH:mm').format(session.endTime.toLocal()),
+          ),
+          'reason': session.reason,
+          'customReasonController': TextEditingController(
+            text: session.customReason ?? '',
+          ),
+        });
+      }
+    } else {
+      sessionDrafts.add({
+        'startController': TextEditingController(
+          text: log.startTime != null
+              ? DateFormat('HH:mm').format(log.startTime!.toLocal())
+              : '',
+        ),
+        'endController': TextEditingController(
+          text: log.endTime != null
+              ? DateFormat('HH:mm').format(log.endTime!.toLocal())
+              : '',
+        ),
+        'reason':
+            [
+              'work',
+              'lunch',
+              'prayer',
+              'short_leave',
+              'meeting',
+              'other',
+            ].contains(log.endReason)
+            ? log.endReason
+            : 'other',
+        'customReasonController': TextEditingController(
+          text: log.customReason ?? '',
+        ),
+      });
+    }
 
-    final actions = ['End Duty', 'Custom Reason'];
+    final reasonOptions = [
+      'work',
+      'lunch',
+      'prayer',
+      'short_leave',
+      'meeting',
+      'other',
+    ];
 
     showDialog(
       context: context,
@@ -129,59 +162,119 @@ class _HrTimeLogScreenState extends State<HrTimeLogScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text('Edit Time Log'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: startController,
-                      decoration: const InputDecoration(
-                        labelText: 'Start Time (HH:mm)',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: endController,
-                      decoration: const InputDecoration(
-                        labelText: 'End Time (HH:mm)',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: selectedAction,
-                      decoration: const InputDecoration(labelText: 'Action'),
-                      items: actions
-                          .map(
-                            (a) => DropdownMenuItem(value: a, child: Text(a)),
-                          )
-                          .toList(),
-                      onChanged: (val) {
-                        setDialogState(() {
-                          if (val != null) {
-                            selectedAction = val;
-                            if (selectedAction == 'Custom Reason' &&
-                                customReasonController.text.isEmpty) {
-                              customReasonController.text = 'Edited by HR';
-                            } else if (selectedAction == 'End Duty') {
-                              customReasonController.text = '';
-                            }
-                          }
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    if (selectedAction == 'Custom Reason')
-                      TextField(
-                        controller: customReasonController,
-                        decoration: const InputDecoration(
-                          labelText: 'Custom Reason',
+              title: const Text('Edit Time Log Sessions'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: sessionDrafts.length,
+                  itemBuilder: (context, index) {
+                    final draft = sessionDrafts[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Session ${index + 1}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete,
+                                    color: Colors.red,
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    setDialogState(() {
+                                      sessionDrafts.removeAt(index);
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: draft['startController'],
+                                    decoration: const InputDecoration(
+                                      labelText: 'Start (HH:mm)',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextField(
+                                    controller: draft['endController'],
+                                    decoration: const InputDecoration(
+                                      labelText: 'End (HH:mm)',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String>(
+                              value:
+                                  reasonOptions.contains(
+                                    draft['reason'] ?? 'work',
+                                  )
+                                  ? (draft['reason'] ?? 'work')
+                                  : 'other',
+                              decoration: const InputDecoration(
+                                labelText: 'Reason',
+                              ),
+                              items: reasonOptions
+                                  .map(
+                                    (r) => DropdownMenuItem(
+                                      value: r,
+                                      child: Text(r.toUpperCase()),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (val) {
+                                setDialogState(() {
+                                  draft['reason'] = val;
+                                });
+                              },
+                            ),
+                            if (draft['reason'] == 'other') ...[
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: draft['customReasonController'],
+                                decoration: const InputDecoration(
+                                  labelText: 'Custom Reason',
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                  ],
+                    );
+                  },
                 ),
               ),
               actions: [
+                TextButton(
+                  onPressed: () {
+                    setDialogState(() {
+                      sessionDrafts.add({
+                        'startController': TextEditingController(),
+                        'endController': TextEditingController(),
+                        'reason': 'work',
+                        'customReasonController': TextEditingController(),
+                      });
+                    });
+                  },
+                  child: const Text('Add Session'),
+                ),
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
                   child: const Text('Cancel'),
@@ -189,14 +282,9 @@ class _HrTimeLogScreenState extends State<HrTimeLogScreen> {
                 ElevatedButton(
                   onPressed: () async {
                     Navigator.pop(dialogContext);
-                    await _updateLog(
+                    await _updateLogWithSessions(
                       log: log,
-                      startTimeStr: startController.text,
-                      endTimeStr: endController.text,
-                      endReason: 'other',
-                      customReason: selectedAction == 'Custom Reason'
-                          ? customReasonController.text
-                          : 'End of workday',
+                      sessionDrafts: sessionDrafts,
                     );
                   },
                   child: const Text('Save'),
@@ -209,64 +297,120 @@ class _HrTimeLogScreenState extends State<HrTimeLogScreen> {
     );
   }
 
-  Future<void> _updateLog({
+  Future<void> _updateLogWithSessions({
     required TimeLogModel log,
-    required String startTimeStr,
-    required String endTimeStr,
-    required String? endReason,
-    required String customReason,
+    required List<Map<String, dynamic>> sessionDrafts,
   }) async {
     setState(() => _isLoading = true);
     try {
-      // Parse dates taking the log date into account
       final logDate = log.date.toLocal();
+      List<Map<String, dynamic>> finalSessions = [];
+      DateTime? parentStart;
+      DateTime? parentEnd;
 
-      DateTime? newStart;
-      if (startTimeStr.isNotEmpty) {
-        final parts = startTimeStr.split(':');
-        newStart = DateTime(
-          logDate.year,
-          logDate.month,
-          logDate.day,
-          int.parse(parts[0]),
-          int.parse(parts[1]),
-        );
+      for (var draft in sessionDrafts) {
+        DateTime? sStart;
+        DateTime? sEnd;
+
+        final startStr = draft['startController'].text;
+        if (startStr.isNotEmpty) {
+          final parts = startStr.split(':');
+          sStart = DateTime(
+            logDate.year,
+            logDate.month,
+            logDate.day,
+            int.parse(parts[0]),
+            int.parse(parts[1]),
+          );
+        }
+
+        final endStr = draft['endController'].text;
+        if (endStr.isNotEmpty) {
+          final parts = endStr.split(':');
+          sEnd = DateTime(
+            logDate.year,
+            logDate.month,
+            logDate.day,
+            int.parse(parts[0]),
+            int.parse(parts[1]),
+          );
+        }
+
+        if (sStart != null && sEnd != null) {
+          finalSessions.add({
+            'start_time': sStart
+                .toIso8601String()
+                .replaceAll('T', ' ')
+                .split('.')[0],
+            'end_time': sEnd
+                .toIso8601String()
+                .replaceAll('T', ' ')
+                .split('.')[0],
+            'reason': draft['reason'],
+            'custom_reason': draft['reason'] == 'other'
+                ? draft['customReasonController'].text
+                : null,
+          });
+
+          if (parentStart == null || sStart.isBefore(parentStart)) {
+            parentStart = sStart;
+          }
+          if (parentEnd == null || sEnd.isAfter(parentEnd)) {
+            parentEnd = sEnd;
+          }
+        } else if (sStart != null && sEnd == null) {
+          finalSessions.add({
+            'start_time': sStart
+                .toIso8601String()
+                .replaceAll('T', ' ')
+                .split('.')[0],
+            'end_time': null,
+            'reason': draft['reason'],
+            'custom_reason': draft['reason'] == 'other'
+                ? draft['customReasonController'].text
+                : null,
+          });
+          if (parentStart == null || sStart.isBefore(parentStart)) {
+            parentStart = sStart;
+          }
+        }
       }
 
-      DateTime? newEnd;
-      if (endTimeStr.isNotEmpty) {
-        final parts = endTimeStr.split(':');
-        newEnd = DateTime(
-          logDate.year,
-          logDate.month,
-          logDate.day,
-          int.parse(parts[0]),
-          int.parse(parts[1]),
-        );
-      }
-
-      await _timeLogService.updateTimeLog(log.id, {
-        'start_time': newStart
+      final payload = {
+        'sessions': finalSessions.isNotEmpty ? finalSessions : null,
+        'start_time': parentStart
             ?.toIso8601String()
             .replaceAll('T', ' ')
             .split('.')[0],
-        'end_time': newEnd
+        'end_time': parentEnd
             ?.toIso8601String()
             .replaceAll('T', ' ')
             .split('.')[0],
-        'end_reason': endReason,
-        'custom_reason': customReason,
-      });
+        'end_reason': finalSessions.isNotEmpty ? 'other' : null,
+        'custom_reason': finalSessions.isNotEmpty ? 'Edited by HR' : null,
+      };
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Time log updated successfully')),
-      );
-      _fetchLogs();
+      await _timeLogService.updateTimeLog(log.id, payload);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Time log updated successfully')),
+        );
+        _fetchLogs();
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to update time log: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update time log: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

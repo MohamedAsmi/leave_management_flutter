@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:leave_management/core/constants/colors.dart';
 import 'package:leave_management/providers/time_adjustment_provider.dart';
+import 'package:flutter/cupertino.dart';
+
 
 class TimeAdjustmentRequestScreen extends StatefulWidget {
   const TimeAdjustmentRequestScreen({super.key});
@@ -72,48 +74,101 @@ class _TimeAdjustmentRequestScreenState
     }
   }
 
-  Future<void> _pickStartTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedStartTime ?? TimeOfDay.now(),
-    );
-    if (picked != null) {
-      setState(() => _selectedStartTime = picked);
-      // Validate start time is before end time
-      _validateTimes();
-    }
-  }
+Future<void> _pickStartTime() async {
+  TimeOfDay tempPickedTime = _selectedStartTime ?? TimeOfDay.fromDateTime(DateTime.now());
+  await showCupertinoModalPopup(
+    context: context,
+    builder: (BuildContext context) {
+      return Container(
+        height: 300,
+        color: Colors.white,
+        child: Column(
+          children: [
+            // Done button
+            SizedBox(
+              height: 50,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    child: const Text("Done"),
+                    onPressed: () { // ✅ Commit the last value (even if not scrolled) 
+                    setState(() => _selectedStartTime = tempPickedTime); 
+                    Navigator.of(context).pop(); 
+                    },
+                  ),
+                ],
+              ),
+            ),
+            // Cupertino time picker
+            Expanded(
+              child: CupertinoDatePicker(
+                mode: CupertinoDatePickerMode.time,
+                initialDateTime: DateTime.now(), // ✅ current time
+                use24hFormat: false,
+                onDateTimeChanged: (DateTime newDateTime) {
+                  setState(() {
+                    _selectedStartTime = TimeOfDay.fromDateTime(newDateTime);
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 
-  Future<void> _pickEndTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedEndTime ?? TimeOfDay.now(),
-    );
-    if (picked != null) {
-      setState(() => _selectedEndTime = picked);
-      // Validate end time is after start time
-      _validateTimes();
-    }
-  }
+Future<void> _pickEndTime() async {
+  TimeOfDay tempPickedTime = _selectedEndTime ?? TimeOfDay.fromDateTime(DateTime.now());
+  await showCupertinoModalPopup(
+    context: context,
+    builder: (BuildContext context) {
+      return Container(
+        height: 300,
+        color: Colors.white,
+        child: Column(
+          children: [
+            // Done button
+            SizedBox(
+              height: 50,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    child: const Text("Done"),
+                    onPressed: () { 
+                      setState(() => _selectedEndTime = tempPickedTime); 
+                      Navigator.of(context).pop(); 
+                      },
+                  ),
+                ],
+              ),
+            ),
+            // Cupertino time picker
+            Expanded(
+              child: CupertinoDatePicker(
+                mode: CupertinoDatePickerMode.time,
+                initialDateTime: DateTime.now(), // ✅ current time
+                use24hFormat: false,
+                onDateTimeChanged: (DateTime newDateTime) {
+                  setState(() {
+                    _selectedStartTime = TimeOfDay.fromDateTime(newDateTime);
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 
-  void _validateTimes() {
-    if (_selectedStartTime != null && _selectedEndTime != null) {
-      final startMinutes = _selectedStartTime!.hour * 60 + _selectedStartTime!.minute;
-      final endMinutes = _selectedEndTime!.hour * 60 + _selectedEndTime!.minute;
-      
-      if (endMinutes <= startMinutes) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('End time must be after start time'),
-            backgroundColor: AppColors.error,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    }
-  }
 
-  bool _isTimeInFuture(DateTime date, TimeOfDay time) {
+
+bool _isTimeInFuture(DateTime date, TimeOfDay time) {
     final dateTime = DateTime(
       date.year,
       date.month,
@@ -123,7 +178,6 @@ class _TimeAdjustmentRequestScreenState
     );
     return dateTime.isAfter(DateTime.now());
   }
-
   String _formatTimeOfDay(TimeOfDay time) {
     final now = DateTime.now();
     final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);

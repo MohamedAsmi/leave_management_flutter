@@ -1,9 +1,0 @@
-# This file disables GitHub Codespaces for this repository
-# Remove this file if you want to enable Codespaces again
-
-# To completely disable Codespaces:
-# 1. Delete the .devcontainer folder entirely, or  
-# 2. Keep this .codespaces-disabled file
-
-# Alternative: Use the fixed .devcontainer/devcontainer.json instead
-# which now uses a working Ubuntu base image with Flutter installation

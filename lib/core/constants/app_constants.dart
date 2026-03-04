@@ -1,8 +1,7 @@
-import '../config/environment.dart';
-
 class AppConstants {
   // API Configuration
-  static String get baseUrl => EnvironmentConfig.baseUrl;
+  static const String baseUrl = 'http://31.97.71.5/leave-api/api'; // Change to your Laravel API URL
+  // static const String baseUrl = 'http://localhost:8000/api'; // Change to localhost for local development
   static const String apiVersion = 'v1';
   
   // Storage Keys

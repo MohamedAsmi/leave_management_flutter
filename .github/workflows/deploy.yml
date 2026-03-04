@@ -3,25 +3,19 @@ name: Flutter Web CI/CD
 on:
   push:
     branches: [ main, master ]
-    paths:
-      - 'lib/**'
-      - 'web/**'
-      - 'pubspec.yaml'
-      - 'pubspec.lock'
-      - '.github/workflows/**'
-    # Ignore Codespaces and documentation changes
+    # Only trigger on code changes, not documentation
     paths-ignore:
       - '**.md'
       - '.devcontainer/**'
       - '.github/dependabot.yml'
       - '.github/repository-settings.yml'
+      - 'DISABLE_CODESPACES.md'
+      - 'CI_CD_SETUP.md'
   pull_request:
     branches: [ main, master ]
-    paths:
-      - 'lib/**'
-      - 'web/**'
-      - 'pubspec.yaml'
-      - 'pubspec.lock'
+    paths-ignore:
+      - '**.md'
+      - '.devcontainer/**'
 
 jobs:
   build-and-deploy:
@@ -57,9 +51,26 @@ jobs:
 
     - name: Build Flutter web (production)
       run: |
-        # Set production environment in the environment.dart file
-        sed -i 's/Environment.development/Environment.production/' lib/core/config/environment.dart
+        # Ensure we're in production mode
+        echo "Setting production environment..."
+        if grep -q "Environment\.development" lib/core/config/environment.dart; then
+          sed -i 's/Environment\.development/Environment.production/' lib/core/config/environment.dart
+          echo "✅ Switched to production environment"
+        else
+          echo "✅ Already in production environment"
+        fi
+        
+        # Build with error checking
+        echo "Building Flutter web app..."
         flutter build web --release --base-href /leave-app/
+        
+        # Verify build succeeded
+        if [ ! -d "build/web" ]; then
+          echo "❌ Build failed - no output directory"
+          exit 1
+        fi
+        
+        echo "✅ Build completed successfully"
 
     - name: Prepare deployment files
       run: |

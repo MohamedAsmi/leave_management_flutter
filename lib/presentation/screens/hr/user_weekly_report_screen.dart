@@ -5,6 +5,7 @@ import '../../../providers/user_provider.dart';
 import '../../../providers/leave_provider.dart';
 import '../../../providers/time_log_provider.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/utils/date_time_utils.dart';
 import '../../../core/widgets/week_picker_dialog.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/models/leave_model.dart';
@@ -192,7 +193,9 @@ class _UserWeeklyReportScreenState extends State<UserWeeklyReportScreen> {
     // Fill in actual hours
     for (var log in _userTimeLogs) {
       if (log.startTime != null) {
-        final dateKey = DateFormat('EEE\nMMM dd').format(log.startTime!);
+        // Convert to local time to ensure correct date grouping
+        final localStartTime = log.startTime!.toLocal();
+        final dateKey = DateFormat('EEE\nMMM dd').format(localStartTime);
         final hours = (log.totalDuration?.inMinutes ?? 0) / 60.0;
         daily[dateKey] = (daily[dateKey] ?? 0) + hours;
       }
@@ -439,7 +442,7 @@ class _UserWeeklyReportScreenState extends State<UserWeeklyReportScreen> {
             Expanded(
               child: _buildSummaryCard(
                 'Expected Hours',
-                '${_expectedWeeklyHours.toStringAsFixed(1)} hrs',
+                '${_expectedWeeklyHours.toStringAsFixed(2)} hrs',
                 Icons.flag,
                 AppColors.info,
               ),
@@ -448,7 +451,7 @@ class _UserWeeklyReportScreenState extends State<UserWeeklyReportScreen> {
             Expanded(
               child: _buildSummaryCard(
                 'Total Hours',
-                '${_totalHours.toStringAsFixed(1)} hrs',
+                '${_totalHours.toStringAsFixed(2)} hrs',
                 Icons.access_time,
                 AppColors.primary,
               ),
@@ -461,7 +464,7 @@ class _UserWeeklyReportScreenState extends State<UserWeeklyReportScreen> {
             Expanded(
               child: _buildSummaryCard(
                 'Balance Hours',
-                '${balanceHours.abs().toStringAsFixed(1)} hrs',
+                '${balanceHours.abs().toStringAsFixed(2)} hrs',
                 Icons.schedule_outlined,
                 AppColors.warning,
               ),
@@ -483,7 +486,7 @@ class _UserWeeklyReportScreenState extends State<UserWeeklyReportScreen> {
             Expanded(
               child: _buildSummaryCard(
                 'Avg/Day',
-                '${_avgHoursPerDay.toStringAsFixed(1)} hrs',
+                '${_avgHoursPerDay.toStringAsFixed(2)} hrs',
                 Icons.schedule,
                 AppColors.info,
               ),
@@ -571,7 +574,7 @@ class _UserWeeklyReportScreenState extends State<UserWeeklyReportScreen> {
                     child: Column(
                       children: [
                         Text(
-                          entry.value.toStringAsFixed(1),
+                          entry.value.toStringAsFixed(2),
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -741,7 +744,7 @@ class _UserWeeklyReportScreenState extends State<UserWeeklyReportScreen> {
                 timeDisplay = '${DateFormat('HH:mm').format(log.startTime!)} - Active';
               } else if (log.totalDuration != null) {
                 // Show duration only if times are not properly recorded
-                timeDisplay = 'Duration: ${hours.toStringAsFixed(1)} hrs';
+                timeDisplay = 'Duration: ${hours.toStringAsFixed(2)} hrs';
               } else {
                 timeDisplay = 'No time recorded';
               }
@@ -757,7 +760,7 @@ class _UserWeeklyReportScreenState extends State<UserWeeklyReportScreen> {
                   style: TextStyle(fontSize: 12),
                 ),
                 trailing: Text(
-                  '${hours.toStringAsFixed(1)} hrs',
+                  '${hours.toStringAsFixed(2)} hrs',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,

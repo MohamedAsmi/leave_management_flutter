@@ -152,8 +152,8 @@ class _HRTimeTrackingScreenState extends State<HRTimeTrackingScreen> {
                     ),
                     Text(
                       todayHours != null
-                          ? DateTimeUtils.durationToString(todayHours)
-                          : '0h 0m',
+                          ? '${(todayHours.inMinutes / 60).toStringAsFixed(2)} hrs'
+                          : '0.00 hrs',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

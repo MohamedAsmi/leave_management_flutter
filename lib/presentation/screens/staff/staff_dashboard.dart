@@ -324,8 +324,8 @@ class _StaffDashboardState extends State<StaffDashboard> {
                     ),
                     Text(
                       todayHours != null
-                          ? DateTimeUtils.durationToString(todayHours)
-                          : '0h 0m',
+                          ? '${(todayHours.inMinutes / 60).toStringAsFixed(2)} hrs'
+                          : '0.00 hrs',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -747,7 +747,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
           // Worked hours
           _buildBreakdownRow(
             'Worked Hours',
-            DateTimeUtils.durationToString(todayHours ?? Duration.zero),
+            '${((todayHours?.inMinutes ?? 0) / 60.0).toStringAsFixed(2)} hrs',
             Icons.timer,
             AppColors.success,
           ),

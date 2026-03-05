@@ -247,7 +247,7 @@ class _TimeLogScreenState extends State<TimeLogScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              DateTimeUtils.durationToString(totalDuration),
+              '${(totalDuration.inMinutes / 60).toStringAsFixed(2)} hrs',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 32,
@@ -343,8 +343,8 @@ class _TimeLogScreenState extends State<TimeLogScreen> {
         : (isActive ? 'Active' : '--:--');
 
     final durationStr = duration != null
-        ? DateTimeUtils.durationToString(duration)
-        : (isActive ? 'Running...' : '0h 0m');
+        ? '${(duration.inMinutes / 60).toStringAsFixed(2)} hrs'
+        : (isActive ? 'Running...' : '0.00 hrs');
 
     final isSystemReason = [
       'lunch',

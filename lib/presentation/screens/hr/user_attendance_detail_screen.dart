@@ -248,7 +248,7 @@ class _UserAttendanceDetailScreenState extends State<UserAttendanceDetailScreen>
         Expanded(
           child: _buildStatCard(
             'Total Hours',
-            '${totalHours.toStringAsFixed(1)}h',
+            '${totalHours.toStringAsFixed(2)}h',
             Icons.access_time,
             AppColors.primary,
           ),
@@ -266,7 +266,7 @@ class _UserAttendanceDetailScreenState extends State<UserAttendanceDetailScreen>
         Expanded(
           child: _buildStatCard(
             'Avg. Hours',
-            '${avgHours.toStringAsFixed(1)}h',
+            '${avgHours.toStringAsFixed(2)}h',
             Icons.analytics_outlined,
             AppColors.info,
           ),
@@ -352,7 +352,7 @@ class _UserAttendanceDetailScreenState extends State<UserAttendanceDetailScreen>
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  DateTimeUtils.durationToString(duration),
+                  '${(duration.inMinutes / 60).toStringAsFixed(2)} hrs',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     color: AppColors.primary,

@@ -6,6 +6,7 @@ import '../../../providers/user_provider.dart';
 import '../../../providers/leave_provider.dart';
 import '../../../providers/time_log_provider.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/utils/date_time_utils.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/models/leave_model.dart';
 import '../../../data/models/time_log_model.dart';
@@ -288,7 +289,7 @@ class _TeamReportsScreenState extends State<TeamReportsScreen>
                 Expanded(
                   child: _buildStatCard(
                     'Avg Hours/Day',
-                    _avgWorkingHours.toStringAsFixed(1),
+                    '${_avgWorkingHours.toStringAsFixed(2)} hrs',
                     Icons.access_time,
                     AppColors.info,
                   ),
@@ -557,7 +558,7 @@ class _TeamReportsScreenState extends State<TeamReportsScreen>
                           style: const TextStyle(fontSize: 14),
                         ),
                         Text(
-                          '${entry.value} (${percentage.toStringAsFixed(1)}%)',
+                          '${entry.value} (${percentage.toStringAsFixed(2)}%)',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -729,7 +730,7 @@ class _TeamReportsScreenState extends State<TeamReportsScreen>
                 title: Text(user.name),
                 subtitle: Text(user.department ?? 'No Department'),
                 trailing: Chip(
-                  label: Text('${hours.toStringAsFixed(1)} hrs'),
+                  label: Text('${hours.toStringAsFixed(2)} hrs'),
                   backgroundColor: AppColors.success.withValues(alpha: 0.2),
                 ),
                 onTap: () {
@@ -867,7 +868,7 @@ class _TeamReportsScreenState extends State<TeamReportsScreen>
                           ),
                         ),
                         Text(
-                          '${entry.value} (${percentage.toStringAsFixed(1)}%)',
+                          '${entry.value} (${percentage.toStringAsFixed(2)}%)',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,

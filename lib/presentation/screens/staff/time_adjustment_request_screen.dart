@@ -120,51 +120,64 @@ Future<void> _pickStartTime() async {
   );
 }
 
-Future<void> _pickEndTime() async {
-  TimeOfDay tempPickedTime = _selectedEndTime ?? TimeOfDay.fromDateTime(DateTime.now());
-  await showCupertinoModalPopup(
-    context: context,
-    builder: (BuildContext context) {
-      return Container(
-        height: 300,
-        color: Colors.white,
-        child: Column(
-          children: [
-            // Done button
-            SizedBox(
-              height: 50,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    child: const Text("Done"),
-                    onPressed: () { 
-                      setState(() => _selectedEndTime = tempPickedTime); 
-                      Navigator.of(context).pop(); 
+  Future<void> _pickEndTime() async {
+    TimeOfDay tempPickedTime = _selectedEndTime ?? TimeOfDay.fromDateTime(DateTime.now());
+    
+    final result = await showCupertinoModalPopup<TimeOfDay>(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          height: 300,
+          color: Colors.white,
+          child: Column(
+            children: [
+              // Done button
+              SizedBox(
+                height: 50,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      child: const Text("Done"),
+                      onPressed: () {
+                        // Return the selected time from the picker
+                        Navigator.of(context).pop(tempPickedTime);
                       },
+                    ),
+                  ],
+                ),
+              ),
+              // Cupertino time picker
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.time,
+                  initialDateTime: DateTime(
+                    DateTime.now().year,
+                    DateTime.now().month,
+                    DateTime.now().day,
+                    tempPickedTime.hour,
+                    tempPickedTime.minute,
                   ),
-                ],
+                  use24hFormat: false,
+                  onDateTimeChanged: (DateTime newDateTime) {
+                    // Update the temporary variable, not the main state
+                    tempPickedTime = TimeOfDay.fromDateTime(newDateTime);
+                  },
+                ),
               ),
-            ),
-            // Cupertino time picker
-            Expanded(
-              child: CupertinoDatePicker(
-                mode: CupertinoDatePickerMode.time,
-                initialDateTime: DateTime.now(), // ✅ current time
-                use24hFormat: false,
-                onDateTimeChanged: (DateTime newDateTime) {
-                  setState(() {
-                    _selectedStartTime = TimeOfDay.fromDateTime(newDateTime);
-                  });
-                },
-              ),
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
+            ],
+          ),
+        );
+      },
+    );
+
+    // Only update the state if user didn't cancel
+    if (result != null) {
+      setState(() {
+        _selectedEndTime = result;
+      });
+    }
+  }
 
 
 

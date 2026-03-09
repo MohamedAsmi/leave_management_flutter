@@ -24,6 +24,14 @@ class _TimeAdjustmentRequestScreenState
   bool _isSubmitting = false;
 
   @override
+  void initState() {
+    super.initState();
+    _selectedDate = DateTime.now();
+    _selectedStartTime = const TimeOfDay(hour: 8, minute: 30);
+    _selectedEndTime = TimeOfDay.fromDateTime(DateTime.now());
+  }
+
+  @override
   void dispose() {
     _reasonController.dispose();
     super.dispose();
@@ -75,8 +83,10 @@ class _TimeAdjustmentRequestScreenState
   }
 
 Future<void> _pickStartTime() async {
-  TimeOfDay tempPickedTime = _selectedStartTime ?? TimeOfDay.fromDateTime(DateTime.now());
-  await showCupertinoModalPopup(
+  final now = DateTime.now();
+  final initial = _selectedStartTime ?? const TimeOfDay(hour: 8, minute: 30);
+  TimeOfDay tempPickedTime = initial;
+  final result = await showCupertinoModalPopup<TimeOfDay>(
     context: context,
     builder: (BuildContext context) {
       return Container(
@@ -84,7 +94,6 @@ Future<void> _pickStartTime() async {
         color: Colors.white,
         child: Column(
           children: [
-            // Done button
             SizedBox(
               height: 50,
               child: Row(
@@ -92,24 +101,23 @@ Future<void> _pickStartTime() async {
                 children: [
                   TextButton(
                     child: const Text("Done"),
-                    onPressed: () { // ✅ Commit the last value (even if not scrolled) 
-                    setState(() => _selectedStartTime = tempPickedTime); 
-                    Navigator.of(context).pop(); 
+                    onPressed: () {
+                      Navigator.of(context).pop(tempPickedTime);
                     },
                   ),
                 ],
               ),
             ),
-            // Cupertino time picker
             Expanded(
               child: CupertinoDatePicker(
                 mode: CupertinoDatePickerMode.time,
-                initialDateTime: DateTime.now(), // ✅ current time
+                initialDateTime: DateTime(
+                  now.year, now.month, now.day,
+                  initial.hour, initial.minute,
+                ),
                 use24hFormat: false,
                 onDateTimeChanged: (DateTime newDateTime) {
-                  setState(() {
-                    _selectedStartTime = TimeOfDay.fromDateTime(newDateTime);
-                  });
+                  tempPickedTime = TimeOfDay.fromDateTime(newDateTime);
                 },
               ),
             ),
@@ -118,6 +126,9 @@ Future<void> _pickStartTime() async {
       );
     },
   );
+  if (result != null) {
+    setState(() => _selectedStartTime = result);
+  }
 }
 
   Future<void> _pickEndTime() async {
